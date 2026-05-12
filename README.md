@@ -34,7 +34,7 @@ lib/
 1. Clone repository
 
 ```bash
-git clone <your-repo-url>
+git clone <https://github.com/nangsan17/momentum.git>
 ```
 
 2. Install dependencies
