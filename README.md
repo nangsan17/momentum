@@ -1,17 +1,58 @@
-# momentum
+# Momentum
 
-A new Flutter project.
+Momentum is a modern habit tracking mobile application built with Flutter and Firebase to help users build consistency and improve their daily routines.
+
+## Features
+
+- Habit tracking
+- Daily streak monitoring
+- Progress analytics
+- Local reminders
+- Firebase authentication
+- Cloud sync with Firestore
+
+## Tech Stack
+
+- Flutter
+- Firebase
+- Riverpod
+- Firestore
+- Firebase Authentication
+
+## Project Structure
+
+```txt
+lib/
+├── core/
+├── features/
+├── shared/
+└── main.dart
+```
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+1. Clone repository
 
-A few resources to get you started if this is your first Flutter project:
+```bash
+git clone <your-repo-url>
+```
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+2. Install dependencies
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```bash
+flutter pub get
+```
+
+3. Run application
+
+```bash
+flutter run
+```
+
+## Current Status
+
+🚧 In active development
+
+## Author
+
+Nang Thet Htar San
