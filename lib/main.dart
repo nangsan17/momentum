@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/theme/app_theme.dart';
-import 'features/auth/screens/login_screen.dart';
 import 'firebase_options.dart';
+import 'features/onboarding/screens/onboarding_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,7 +23,7 @@ class MomentumApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Momentum',
       theme: AppTheme.lightTheme,
-      home: const LoginScreen(),
+      home: const OnboardingScreen(),
     );
   }
 }

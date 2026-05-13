@@ -1,11 +1,84 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../shared/widgets/primary_button.dart';
+import '../providers/auth_provider.dart';
+import '../../../shared/widgets/main_navigation.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
+
+  @override
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends ConsumerState<LoginScreen> {
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+
+  bool isLoading = false;
+
+  Future<void> login() async {
+    try {
+      setState(() {
+        isLoading = true;
+      });
+
+      final authService = ref.read(authServiceProvider);
+
+      await authService.login(
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
+      );
+
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const MainNavigation()),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  Future<void> signUp() async {
+    try {
+      setState(() {
+        isLoading = true;
+      });
+
+      final authService = ref.read(authServiceProvider);
+
+      await authService.signUp(
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
+      );
+
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const MainNavigation()),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,6 +114,7 @@ class LoginScreen extends StatelessWidget {
               const SizedBox(height: 48),
 
               TextField(
+                controller: emailController,
                 decoration: InputDecoration(
                   hintText: 'Email',
                   filled: true,
@@ -55,6 +129,7 @@ class LoginScreen extends StatelessWidget {
               const SizedBox(height: 16),
 
               TextField(
+                controller: passwordController,
                 obscureText: true,
                 decoration: InputDecoration(
                   hintText: 'Password',
@@ -69,16 +144,15 @@ class LoginScreen extends StatelessWidget {
 
               const SizedBox(height: 24),
 
-              PrimaryButton(text: 'Login', onPressed: () {}),
+              if (isLoading)
+                const Center(child: CircularProgressIndicator())
+              else ...[
+                PrimaryButton(text: 'Login', onPressed: login),
 
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-              Center(
-                child: TextButton(
-                  onPressed: () {},
-                  child: const Text('Create an account'),
-                ),
-              ),
+                PrimaryButton(text: 'Create Account', onPressed: signUp),
+              ],
 
               const Spacer(),
             ],
