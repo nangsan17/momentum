@@ -4,50 +4,99 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/habit_model.dart';
 
 class HabitService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final _firestore =
+      FirebaseFirestore.instance;
 
-  final user = FirebaseAuth.instance.currentUser;
+  final user =
+      FirebaseAuth.instance.currentUser;
 
-  Future<void> addHabit(HabitModel habit) async {
-    await _firestore
-        .collection('users')
-        .doc(user!.uid)
-        .collection('habits')
-        .doc(habit.id)
-        .set(habit.toMap());
-  }
+  CollectionReference get _habitRef =>
+      _firestore
+          .collection('users')
+          .doc(user!.uid)
+          .collection('habits');
 
   Stream<List<HabitModel>> getHabits() {
-    return _firestore
-        .collection('users')
-        .doc(user!.uid)
-        .collection('habits')
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => HabitModel.fromMap(doc.data()))
-              .toList(),
-        );
+    return _habitRef.snapshots().map(
+      (snapshot) {
+        return snapshot.docs.map((doc) {
+          return HabitModel.fromMap(
+            doc.data()
+                as Map<String, dynamic>,
+          );
+        }).toList();
+      },
+    );
   }
 
-  Future<void> updateHabit(HabitModel habit) async {
-    await _firestore
-        .collection('users')
-        .doc(user!.uid)
-        .collection('habits')
-        .doc(habit.id)
-        .update(habit.toMap());
-  }
-  Future<void> toggleHabit(HabitModel habit) async {
-  final updatedHabit = HabitModel(
-    id: habit.id,
-    title: habit.title,
-    completed: !habit.completed,
-    streak: !habit.completed
-        ? habit.streak + 1
-        : 0,
-  );
+  Future<void> addHabit(
+    String title,
+    String emoji,
+  ) async {
+    final doc = _habitRef.doc();
 
-  await updateHabit(updatedHabit);
-}
+    final habit = HabitModel(
+      id: doc.id,
+      title: title,
+      emoji: emoji,
+      completed: false,
+      streak: 0,
+      lastCompleted: null,
+    );
+
+    await doc.set(habit.toMap());
+  }
+
+  Future<void> updateHabit(
+    String id,
+    String newTitle,
+  ) async {
+    await _habitRef.doc(id).update({
+      'title': newTitle,
+    });
+  }
+
+  Future<void> deleteHabit(
+    String id,
+  ) async {
+    await _habitRef.doc(id).delete();
+  }
+
+  Future<void> toggleHabit(
+    HabitModel habit,
+  ) async {
+    final now = DateTime.now();
+
+    int newStreak = habit.streak;
+
+    if (!habit.completed) {
+      if (habit.lastCompleted != null) {
+        final difference = now
+            .difference(
+              habit.lastCompleted!,
+            )
+            .inDays;
+
+        if (difference == 1) {
+          newStreak += 1;
+        } else if (difference > 1) {
+          newStreak = 1;
+        }
+      } else {
+        newStreak = 1;
+      }
+    } else {
+      newStreak =
+          newStreak > 0
+              ? newStreak - 1
+              : 0;
+    }
+
+    await _habitRef.doc(habit.id).update({
+      'completed': !habit.completed,
+      'streak': newStreak,
+      'lastCompleted':
+          now.toIso8601String(),
+    });
+  }
 }

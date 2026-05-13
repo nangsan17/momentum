@@ -1,60 +1,193 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:uuid/uuid.dart';
 
+import '../../../core/constants/app_colors.dart';
 import '../../../shared/widgets/primary_button.dart';
-import '../models/habit_model.dart';
 import '../providers/habit_provider.dart';
 
-class AddHabitScreen extends ConsumerStatefulWidget {
-  const AddHabitScreen({super.key});
+class AddHabitScreen
+    extends ConsumerStatefulWidget {
+  const AddHabitScreen({
+    super.key,
+  });
 
   @override
-  ConsumerState<AddHabitScreen> createState() => _AddHabitScreenState();
+  ConsumerState<AddHabitScreen>
+  createState() =>
+      _AddHabitScreenState();
 }
 
-class _AddHabitScreenState extends ConsumerState<AddHabitScreen> {
-  final titleController = TextEditingController();
+class _AddHabitScreenState
+    extends ConsumerState<AddHabitScreen> {
+  final titleController =
+      TextEditingController();
+
+  String selectedEmoji = '🔥';
+
+  final emojis = [
+    '🔥',
+    '💧',
+    '📚',
+    '🏃',
+    '💪',
+    '🧘',
+    '🎯',
+    '😴',
+  ];
 
   Future<void> saveHabit() async {
-  if (titleController.text.trim().isEmpty) return;
+    if (titleController.text
+        .trim()
+        .isEmpty) {
+      return;
+    }
 
-  final habit = HabitModel(
-    id: const Uuid().v4(),
-    title: titleController.text.trim(),
-    completed: false,
-    streak: 0,
-  );
+    await ref
+        .read(habitServiceProvider)
+        .addHabit(
+          titleController.text.trim(),
+          selectedEmoji,
+        );
 
-  await ref.read(habitServiceProvider).addHabit(habit);
+    if (!mounted) return;
 
-  if (mounted) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Habit added successfully 🔥',
-        ),
-      ),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Habit added successfully 🔥',
+            ),
+          ),
+        );
 
     Navigator.pop(context);
   }
-}
+
+  @override
+  void dispose() {
+    titleController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor:
+          AppColors.background,
+
       appBar: AppBar(
-        title: const Text('New Habit'),
+        backgroundColor:
+            AppColors.background,
+
+        title: const Text(
+          'New Habit',
+        ),
       ),
+
       body: Padding(
-        padding: const EdgeInsets.all(20),
+        padding:
+            const EdgeInsets.all(20),
+
         child: Column(
           children: [
-            TextField(
-              controller: titleController,
-              decoration: const InputDecoration(
-                hintText: 'Habit name',
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(
+                    horizontal: 20,
+                  ),
+
+              decoration: BoxDecoration(
+                color: Colors.white,
+
+                borderRadius:
+                    BorderRadius.circular(
+                      20,
+                    ),
+              ),
+
+              child: TextField(
+                controller:
+                    titleController,
+
+                decoration:
+                    const InputDecoration(
+                      border:
+                          InputBorder.none,
+
+                      hintText:
+                          'Habit name',
+                    ),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            SizedBox(
+              height: 60,
+
+              child: ListView.builder(
+                scrollDirection:
+                    Axis.horizontal,
+
+                itemCount: emojis.length,
+
+                itemBuilder: (
+                  _,
+                  index,
+                ) {
+                  final emoji =
+                      emojis[index];
+
+                  final selected =
+                      selectedEmoji ==
+                          emoji;
+
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        selectedEmoji =
+                            emoji;
+                      });
+                    },
+
+                    child: Container(
+                      margin:
+                          const EdgeInsets.only(
+                            right: 12,
+                          ),
+
+                      width: 55,
+                      height: 55,
+
+                      decoration:
+                          BoxDecoration(
+                            color:
+                                selected
+                                    ? AppColors
+                                        .primary
+                                    : Colors
+                                        .white,
+
+                            borderRadius:
+                                BorderRadius.circular(
+                                  16,
+                                ),
+                          ),
+
+                      child: Center(
+                        child: Text(
+                          emoji,
+
+                          style:
+                              const TextStyle(
+                                fontSize:
+                                    28,
+                              ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
 

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../habits/providers/habit_provider.dart';
+import '../widgets/weekly_chart.dart';
 
 class AnalyticsScreen extends ConsumerWidget {
   const AnalyticsScreen({super.key});
@@ -90,6 +91,9 @@ class AnalyticsScreen extends ConsumerWidget {
                   ],
                 ),
               ),
+              const WeeklyChart(),
+
+const SizedBox(height: 24),
 
               const SizedBox(height: 24),
 

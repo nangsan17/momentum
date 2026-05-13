@@ -2,28 +2,58 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/providers/theme_provider.dart';
+import 'core/services/notification_service.dart';
 import 'core/theme/app_theme.dart';
-import 'firebase_options.dart';
 import 'features/onboarding/screens/onboarding_screen.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await Firebase.initializeApp(
+    options:
+        DefaultFirebaseOptions
+            .currentPlatform,
+  );
 
-  runApp(const ProviderScope(child: MomentumApp()));
+  await NotificationService.init();
+
+  runApp(
+    const ProviderScope(
+      child: MomentumApp(),
+    ),
+  );
 }
 
-class MomentumApp extends StatelessWidget {
-  const MomentumApp({super.key});
+class MomentumApp
+    extends ConsumerWidget {
+  const MomentumApp({
+    super.key,
+  });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(
+    BuildContext context,
+    WidgetRef ref,
+  ) {
+    final isDark = ref.watch(
+      themeProvider,
+    );
+
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
+      debugShowCheckedModeBanner:
+          false,
+
       title: 'Momentum',
-      theme: AppTheme.lightTheme,
-      home: const OnboardingScreen(),
+
+      theme:
+          isDark
+              ? darkTheme
+              : AppTheme.lightTheme,
+
+      home:
+          const OnboardingScreen(),
     );
   }
 }
