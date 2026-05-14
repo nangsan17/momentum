@@ -3,10 +3,31 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../habits/models/habit_model.dart';
 import '../../habits/providers/habit_provider.dart';
 
 class AnalyticsScreen extends ConsumerWidget {
   const AnalyticsScreen({super.key});
+
+  // Get real completions per day for last 7 days from completedDates
+  List<double> getWeeklyData(List<HabitModel> habits) {
+    final now = DateTime.now();
+    return List.generate(7, (i) {
+      final day = now.subtract(Duration(days: 6 - i));
+      final dateStr = '${day.year}-${day.month}-${day.day}';
+      return habits
+          .where((h) => h.completedDates.contains(dateStr))
+          .length
+          .toDouble();
+    });
+  }
+
+  String getDayLabel(int index) {
+    final now = DateTime.now();
+    final day = now.subtract(Duration(days: 6 - index));
+    const labels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    return labels[day.weekday % 7];
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -14,30 +35,32 @@ class AnalyticsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Analytics 📊')),
-
       body: habitsAsync.when(
         data: (habits) {
           final totalHabits = habits.length;
-
-          final completedHabits = habits
-              .where((habit) => habit.completed)
-              .length;
-
+          final completedHabits = habits.where((h) => h.completed).length;
           final pendingHabits = totalHabits - completedHabits;
-
           final completionRate = totalHabits == 0
               ? 0.0
               : completedHabits / totalHabits;
-
           final longestStreak = habits.isEmpty
               ? 0
-              : habits
-                    .map((habit) => habit.streak)
-                    .reduce((a, b) => a > b ? a : b);
+              : habits.map((h) => h.streak).reduce((a, b) => a > b ? a : b);
+          final totalCompletions = habits
+              .map((h) => h.completedDates.length)
+              .fold(0, (a, b) => a + b);
+          final weeklyData = getWeeklyData(habits);
+          final maxY = weeklyData.isEmpty
+              ? 5.0
+              : weeklyData.reduce((a, b) => a > b ? a : b) + 1;
+
+          // Best habit by streak
+          final bestHabit = habits.isEmpty
+              ? null
+              : habits.reduce((a, b) => a.streak > b.streak ? a : b);
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(20),
-
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -45,17 +68,14 @@ class AnalyticsScreen extends ConsumerWidget {
                   'Your Progress 🔥',
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
-
                 const SizedBox(height: 8),
-
                 Text(
                   'Track your habit consistency',
                   style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
                 ),
-
                 const SizedBox(height: 28),
 
-                // STATS
+                // STATS GRID
                 GridView.count(
                   crossAxisCount: 2,
                   shrinkWrap: true,
@@ -63,7 +83,6 @@ class AnalyticsScreen extends ConsumerWidget {
                   crossAxisSpacing: 16,
                   mainAxisSpacing: 16,
                   childAspectRatio: 1.3,
-
                   children: [
                     buildStatCard(
                       context,
@@ -71,121 +90,137 @@ class AnalyticsScreen extends ConsumerWidget {
                       value: totalHabits.toString(),
                       emoji: '📚',
                     ),
-
                     buildStatCard(
                       context,
-                      title: 'Completed',
+                      title: 'Completed Today',
                       value: completedHabits.toString(),
                       emoji: '✅',
                     ),
-
-                    buildStatCard(
-                      context,
-                      title: 'Pending',
-                      value: pendingHabits.toString(),
-                      emoji: '⏳',
-                    ),
-
                     buildStatCard(
                       context,
                       title: 'Longest Streak',
                       value: '$longestStreak days',
                       emoji: '🔥',
                     ),
+                    buildStatCard(
+                      context,
+                      title: 'Total Completions',
+                      value: totalCompletions.toString(),
+                      emoji: '🏆',
+                    ),
                   ],
                 ),
 
                 const SizedBox(height: 32),
 
-                Text(
-                  'Completion Rate',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-
-                const SizedBox(height: 20),
-
-                // PIE CHART
-                Container(
-                  padding: const EdgeInsets.all(20),
-
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).cardColor,
-                    borderRadius: BorderRadius.circular(24),
+                // BEST HABIT CARD
+                if (bestHabit != null && bestHabit.streak > 0) ...[
+                  Text(
+                    'Best Habit',
+                    style: Theme.of(context).textTheme.headlineSmall,
                   ),
-
-                  child: Column(
-                    children: [
-                      SizedBox(
-                        height: 240,
-
-                        child: PieChart(
-                          PieChartData(
-                            sectionsSpace: 4,
-                            centerSpaceRadius: 60,
-
-                            sections: [
-                              PieChartSectionData(
-                                value: completedHabits.toDouble(),
-
-                                color: AppColors.primary,
-
-                                radius: 55,
-
-                                title:
-                                    '${(completionRate * 100).toStringAsFixed(0)}%',
-
-                                titleStyle: const TextStyle(
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFF9B54), Color(0xFFFFB26B)],
+                      ),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Row(
+                      children: [
+                        Text(
+                          bestHabit.emoji,
+                          style: const TextStyle(fontSize: 48),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                bestHabit.title,
+                                style: const TextStyle(
+                                  color: Colors.white,
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.white,
                                 ),
                               ),
-
-                              PieChartSectionData(
-                                value: pendingHabits.toDouble(),
-
-                                color: Colors.grey.shade400,
-
-                                radius: 45,
-                                title: '',
+                              const SizedBox(height: 4),
+                              Text(
+                                '${bestHabit.streak} day streak 🔥',
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 16,
+                                ),
                               ),
                             ],
                           ),
                         ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                ],
+
+                // COMPLETION RATE
+                Text(
+                  'Completion Rate',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor,
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: Column(
+                    children: [
+                      SizedBox(
+                        height: 240,
+                        child: totalHabits == 0
+                            ? const Center(
+                                child: Text(
+                                  'No habits yet 🌱',
+                                  style: TextStyle(fontSize: 16),
+                                ),
+                              )
+                            : PieChart(
+                                PieChartData(
+                                  sectionsSpace: 4,
+                                  centerSpaceRadius: 60,
+                                  sections: [
+                                    PieChartSectionData(
+                                      value: completedHabits.toDouble(),
+                                      color: AppColors.primary,
+                                      radius: 55,
+                                      title:
+                                          '${(completionRate * 100).toStringAsFixed(0)}%',
+                                      titleStyle: const TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    PieChartSectionData(
+                                      value: pendingHabits.toDouble(),
+                                      color: Colors.grey.shade300,
+                                      radius: 45,
+                                      title: '',
+                                    ),
+                                  ],
+                                ),
+                              ),
                       ),
-
                       const SizedBox(height: 20),
-
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Container(
-                            width: 14,
-                            height: 14,
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ),
-
-                          const SizedBox(width: 8),
-
-                          const Text('Completed'),
-
+                          _legend(AppColors.primary, 'Completed'),
                           const SizedBox(width: 24),
-
-                          Container(
-                            width: 14,
-                            height: 14,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade400,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ),
-
-                          const SizedBox(width: 8),
-
-                          const Text('Pending'),
+                          _legend(Colors.grey.shade300, 'Pending'),
                         ],
                       ),
                     ],
@@ -194,93 +229,188 @@ class AnalyticsScreen extends ConsumerWidget {
 
                 const SizedBox(height: 32),
 
+                // WEEKLY ACTIVITY — REAL DATA
                 Text(
-                  'Weekly Activity',
+                  'Last 7 Days Activity',
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
-
-                const SizedBox(height: 20),
-
-                // BAR CHART
+                const SizedBox(height: 8),
+                Text(
+                  'Habits completed per day',
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                ),
+                const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.all(20),
-
                   decoration: BoxDecoration(
                     color: Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(24),
                   ),
-
                   child: SizedBox(
                     height: 260,
-
-                    child: BarChart(
-                      BarChartData(
-                        gridData: const FlGridData(show: false),
-
-                        borderData: FlBorderData(show: false),
-
-                        titlesData: FlTitlesData(
-                          topTitles: const AxisTitles(
-                            sideTitles: SideTitles(showTitles: false),
-                          ),
-
-                          rightTitles: const AxisTitles(
-                            sideTitles: SideTitles(showTitles: false),
-                          ),
-
-                          leftTitles: const AxisTitles(
-                            sideTitles: SideTitles(showTitles: false),
-                          ),
-
-                          bottomTitles: AxisTitles(
-                            sideTitles: SideTitles(
-                              showTitles: true,
-
-                              getTitlesWidget: (value, meta) {
-                                const days = [
-                                  'M',
-                                  'T',
-                                  'W',
-                                  'T',
-                                  'F',
-                                  'S',
-                                  'S',
-                                ];
-
-                                return Padding(
-                                  padding: const EdgeInsets.only(top: 8),
-                                  child: Text(days[value.toInt()]),
-                                );
-                              },
+                    child: weeklyData.every((d) => d == 0)
+                        ? const Center(
+                            child: Text(
+                              'No activity yet.\nStart completing habits! 🚀',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          )
+                        : BarChart(
+                            BarChartData(
+                              maxY: maxY,
+                              gridData: FlGridData(
+                                show: true,
+                                drawVerticalLine: false,
+                                getDrawingHorizontalLine: (value) => FlLine(
+                                  color: Colors.grey.shade200,
+                                  strokeWidth: 1,
+                                ),
+                              ),
+                              borderData: FlBorderData(show: false),
+                              titlesData: FlTitlesData(
+                                topTitles: const AxisTitles(
+                                  sideTitles: SideTitles(showTitles: false),
+                                ),
+                                rightTitles: const AxisTitles(
+                                  sideTitles: SideTitles(showTitles: false),
+                                ),
+                                leftTitles: AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    interval: 1,
+                                    getTitlesWidget: (value, meta) => Text(
+                                      value.toInt().toString(),
+                                      style: TextStyle(
+                                        color: Colors.grey.shade500,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                bottomTitles: AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    getTitlesWidget: (value, meta) => Padding(
+                                      padding: const EdgeInsets.only(top: 8),
+                                      child: Text(
+                                        getDayLabel(value.toInt()),
+                                        style: TextStyle(
+                                          color: Colors.grey.shade600,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              barGroups: List.generate(
+                                7,
+                                (i) => BarChartGroupData(
+                                  x: i,
+                                  barRods: [
+                                    BarChartRodData(
+                                      toY: weeklyData[i],
+                                      width: 22,
+                                      color: weeklyData[i] > 0
+                                          ? AppColors.primary
+                                          : Colors.grey.shade200,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-
-                        barGroups: [
-                          buildBar(0, 3),
-                          buildBar(1, 5),
-                          buildBar(2, 2),
-                          buildBar(3, 6),
-                          buildBar(4, 4),
-                          buildBar(5, 7),
-                          buildBar(6, 5),
-                        ],
-                      ),
-                    ),
                   ),
                 ),
+
+                // CATEGORY BREAKDOWN
+                const SizedBox(height: 32),
+                Text(
+                  'By Category',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                const SizedBox(height: 16),
+                ...buildCategoryBreakdown(context, habits),
 
                 const SizedBox(height: 40),
               ],
             ),
           );
         },
-
         error: (e, _) => Center(child: Text(e.toString())),
-
         loading: () => const Center(child: CircularProgressIndicator()),
       ),
     );
+  }
+
+  List<Widget> buildCategoryBreakdown(
+    BuildContext context,
+    List<HabitModel> habits,
+  ) {
+    final categories = <String, Map<String, int>>{};
+
+    for (final habit in habits) {
+      categories.putIfAbsent(
+        habit.category,
+        () => {'total': 0, 'completed': 0},
+      );
+      categories[habit.category]!['total'] =
+          categories[habit.category]!['total']! + 1;
+      if (habit.completed) {
+        categories[habit.category]!['completed'] =
+            categories[habit.category]!['completed']! + 1;
+      }
+    }
+
+    if (categories.isEmpty) return [];
+
+    return categories.entries.map((entry) {
+      final total = entry.value['total']!;
+      final completed = entry.value['completed']!;
+      final rate = total == 0 ? 0.0 : completed / total;
+
+      return Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  entry.key,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                Text(
+                  '$completed/$total',
+                  style: TextStyle(color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: rate,
+                minHeight: 10,
+                backgroundColor: Colors.grey.shade200,
+                valueColor: const AlwaysStoppedAnimation(AppColors.primary),
+              ),
+            ),
+          ],
+        ),
+      );
+    }).toList();
   }
 
   Widget buildStatCard(
@@ -291,27 +421,20 @@ class AnalyticsScreen extends ConsumerWidget {
   }) {
     return Container(
       padding: const EdgeInsets.all(20),
-
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(24),
       ),
-
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-
         children: [
           Text(emoji, style: const TextStyle(fontSize: 36)),
-
           const SizedBox(height: 12),
-
           Text(
             value,
             style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
-
           const SizedBox(height: 6),
-
           Text(
             title,
             textAlign: TextAlign.center,
@@ -322,17 +445,19 @@ class AnalyticsScreen extends ConsumerWidget {
     );
   }
 
-  static BarChartGroupData buildBar(int x, double y) {
-    return BarChartGroupData(
-      x: x,
-
-      barRods: [
-        BarChartRodData(
-          toY: y,
-          width: 20,
-          color: AppColors.primary,
-          borderRadius: BorderRadius.circular(8),
+  Widget _legend(Color color, String label) {
+    return Row(
+      children: [
+        Container(
+          width: 14,
+          height: 14,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(4),
+          ),
         ),
+        const SizedBox(width: 8),
+        Text(label),
       ],
     );
   }

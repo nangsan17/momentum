@@ -1,10 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/habit_model.dart';
 
 class HabitService {
-  final CollectionReference _habitRef =
-      FirebaseFirestore.instance.collection('habits');
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  // Each user gets their own habits subcollection
+  CollectionReference get _habitRef {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) throw Exception('User not logged in');
+    return _firestore.collection('users').doc(uid).collection('habits');
+  }
 
   Stream<List<HabitModel>> getHabits() {
     return _habitRef.snapshots().map((snapshot) {
@@ -15,7 +22,6 @@ class HabitService {
     });
   }
 
-  // Returns habit ID so we can schedule notification
   Future<String?> addHabit(
     String title,
     String emoji,
