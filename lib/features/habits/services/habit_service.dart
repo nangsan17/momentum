@@ -56,59 +56,52 @@ class HabitService {
   }
 
   Future<void> toggleHabit(
-  HabitModel habit, {
-  String mood = "",
-  String reflection = "",
-}) async {
+    HabitModel habit, {
+    String mood = "",
+    String reflection = "",
+  }) async {
+    final now = DateTime.now();
 
-  final now = DateTime.now();
+    final today = '${now.year}-${now.month}-${now.day}';
 
-  final today =
-      '${now.year}-${now.month}-${now.day}';
+    List<String> updatedDates = List.from(habit.completedDates);
 
-  List<String>
-      updatedDates =
-      List.from(
-    habit.completedDates,
-  );
+    bool isCompletedToday = updatedDates.contains(today);
 
-  bool isCompletedToday =
-      updatedDates.contains(
-    today,
-  );
+    if (isCompletedToday) {
+      updatedDates.remove(today);
+    } else {
+      updatedDates.add(today);
+    }
+    final userRef = _firestore
+        .collection('users')
+        .doc(FirebaseAuth.instance.currentUser!.uid);
 
-  if (isCompletedToday) {
-    updatedDates.remove(
-      today,
-    );
-  } else {
-    updatedDates.add(
-      today,
-    );
+    final userDoc = await userRef.get();
+
+    int currentXp = userDoc.data()?['xp'] ?? 0;
+
+    // gain XP only when completing
+    if (!isCompletedToday) {
+      currentXp += 10;
+    }
+
+    await userRef.update({'xp': currentXp});
+
+    await _habitRef.doc(habit.id).update({
+      'completed': !habit.completed,
+
+      'streak': !habit.completed
+          ? habit.streak + 1
+          : habit.streak > 0
+          ? habit.streak - 1
+          : 0,
+
+      'completedDates': updatedDates,
+
+      'mood': mood,
+
+      'reflection': reflection,
+    });
   }
-
-  await _habitRef
-      .doc(habit.id)
-      .update({
-    'completed':
-        !habit.completed,
-
-    'streak':
-        !habit.completed
-            ? habit.streak +
-                1
-            : habit.streak > 0
-                ? habit.streak -
-                    1
-                : 0,
-
-    'completedDates':
-        updatedDates,
-
-    'mood': mood,
-
-    'reflection':
-        reflection,
-  });
-}
 }

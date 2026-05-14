@@ -33,7 +33,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool uploadingImage = false;
   TimeOfDay reminderTime = const TimeOfDay(hour: 8, minute: 0);
 
-  int xp = 420;
+  int xp = 0;
 
   int get level => (xp ~/ 100) + 1;
 
@@ -72,6 +72,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       username = data?['username'] ?? 'Momentum User';
       email = data?['email'] ?? '';
       imageBase64 = data?['imageBase64'] ?? '';
+      xp = data?['xp'] ?? 0;
     });
   }
 
