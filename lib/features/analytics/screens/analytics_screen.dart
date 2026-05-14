@@ -78,6 +78,65 @@ class AnalyticsScreen extends ConsumerWidget {
     return "🚀 ${completed} habits completed today. Momentum is building!!";
   }
 
+  String generateBehaviorInsight(List<HabitModel> habits) {
+    if (habits.isEmpty) {
+      return "🌱 Complete habits to unlock behavior insights.";
+    }
+
+    final moodCount = <String, int>{};
+
+    final categoryMood = <String, int>{};
+
+    int tiredCount = 0;
+
+    int productiveCount = 0;
+
+    for (final habit in habits) {
+      if (habit.mood.isNotEmpty) {
+        moodCount[habit.mood] = (moodCount[habit.mood] ?? 0) + 1;
+      }
+
+      if (habit.mood == "😩" ||
+          habit.reflection.toLowerCase().contains("tired") ||
+          habit.reflection.toLowerCase().contains("stress")) {
+        tiredCount++;
+
+        categoryMood[habit.category] = (categoryMood[habit.category] ?? 0) + 1;
+      }
+
+      if (habit.reflection.toLowerCase().contains("productive") ||
+          habit.reflection.toLowerCase().contains("focused")) {
+        productiveCount++;
+      }
+    }
+
+    String topMood = moodCount.isEmpty
+        ? "😐"
+        : moodCount.entries.reduce((a, b) => a.value > b.value ? a : b).key;
+
+    String hardestCategory = categoryMood.isEmpty
+        ? "None"
+        : categoryMood.entries.reduce((a, b) => a.value > b.value ? a : b).key;
+
+    if (productiveCount >= 3) {
+      return "🚀 You perform best on productive days. Your momentum spikes when you're focused.";
+    }
+
+    if (tiredCount >= 3) {
+      return "💙 You often feel tired during $hardestCategory habits. Consider lighter goals on stressful days.";
+    }
+
+    if (topMood == "😄") {
+      return "😄 Positive moods dominate your journey. You're building healthy consistency.";
+    }
+
+    if (topMood == "😩") {
+      return "🧠 Your recent reflections show signs of burnout. Recovery matters too.";
+    }
+
+    return "🤖 AI is learning your behavior patterns over time.";
+  }
+
   String getDayLabel(int index) {
     final now = DateTime.now();
     final day = now.subtract(Duration(days: 6 - index));
@@ -178,6 +237,82 @@ class AnalyticsScreen extends ConsumerWidget {
                             ),
                           ],
                         ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  margin: const EdgeInsets.only(bottom: 28),
+
+                  padding: const EdgeInsets.all(20),
+
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor,
+
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF8E2DE2), Color(0xFF4A00E0)],
+                              ),
+
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+
+                            child: const Text(
+                              "🧠",
+                              style: TextStyle(fontSize: 28),
+                            ),
+                          ),
+
+                          const SizedBox(width: 16),
+
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+
+                              children: [
+                                Text(
+                                  "Behavior Insights",
+
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+
+                                    fontSize: 18,
+
+                                    color: Theme.of(
+                                      context,
+                                    ).textTheme.bodyLarge?.color,
+                                  ),
+                                ),
+
+                                const SizedBox(height: 6),
+
+                                Text(
+                                  generateBehaviorInsight(habits),
+
+                                  style: TextStyle(
+                                    height: 1.5,
+
+                                    fontSize: 14,
+
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
