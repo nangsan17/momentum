@@ -7,6 +7,8 @@ import '../providers/habit_provider.dart';
 import 'add_habit_screen.dart';
 import 'edit_habit_screen.dart';
 import 'habit_detail_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -91,6 +93,57 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return "🔥 Great effort today!!";
   }
 
+  void showXpPopup({required bool levelUp, required int level}) {
+    showDialog(
+      context: context,
+
+      builder: (_) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+          ),
+
+          title: Text(
+            levelUp ? "🎉 LEVEL UP!" : "⚡ XP Gained",
+
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+
+            children: [
+              Text(
+                levelUp ? "Welcome to Level $level 🚀" : "+10 XP earned!",
+
+                style: const TextStyle(fontSize: 18),
+              ),
+
+              const SizedBox(height: 16),
+
+              Text(
+                levelUp
+                    ? "Your consistency is paying off 🔥"
+                    : "Small habits build big momentum.",
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+
+              child: const Text("Nice 🔥"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> showMoodDialog(HabitModel habit) async {
     String mood = "😄";
 
@@ -167,6 +220,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     );
                   },
                 );
+                int newXp = 0;
+
+                try {
+                  final userDoc = await FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(FirebaseAuth.instance.currentUser!.uid)
+                      .get();
+
+                  newXp = userDoc.data()?['xp'] ?? 0;
+                } catch (_) {}
+
+                final level = (newXp ~/ 100) + 1;
+
+                final leveledUp = newXp % 100 == 0;
+
+                if (!mounted) return;
+
+                showXpPopup(levelUp: leveledUp, level: level);
               },
 
               child: const Text("Save"),
