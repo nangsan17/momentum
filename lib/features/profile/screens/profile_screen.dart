@@ -33,6 +33,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool uploadingImage = false;
   TimeOfDay reminderTime = const TimeOfDay(hour: 8, minute: 0);
 
+  int xp = 420;
+
+  int get level => (xp ~/ 100) + 1;
+
+  double get levelProgress => (xp % 100) / 100;
+
+  String get levelTitle {
+    if (level >= 15) {
+      return "👑 Discipline Master";
+    }
+
+    if (level >= 10) {
+      return "🔥 Consistency Beast";
+    }
+
+    if (level >= 5) {
+      return "⚡ Momentum Builder";
+    }
+
+    return "🌱 Beginner";
+  }
+
   @override
   void initState() {
     super.initState();
@@ -294,7 +316,95 @@ class _ProfileScreenState extends State<ProfileScreen> {
               subtitle: 'Choose your daily reminder',
               onTap: pickReminderTime,
             ),
+            Container(
+              margin: const EdgeInsets.only(bottom: 24),
 
+              padding: const EdgeInsets.all(22),
+
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF6D5DF6), Color(0xFF46A0FF)],
+                ),
+
+                borderRadius: BorderRadius.circular(28),
+              ),
+
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+
+                children: [
+                  Row(
+                    children: [
+                      const Text("🎮", style: TextStyle(fontSize: 34)),
+
+                      const SizedBox(width: 12),
+
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+
+                          children: [
+                            Text(
+                              "Level $level",
+
+                              style: const TextStyle(
+                                color: Colors.white,
+
+                                fontSize: 24,
+
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+
+                            Text(
+                              levelTitle,
+
+                              style: const TextStyle(color: Colors.white70),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      Text(
+                        "$xp XP",
+
+                        style: const TextStyle(
+                          color: Colors.white,
+
+                          fontWeight: FontWeight.bold,
+
+                          fontSize: 18,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+
+                    child: LinearProgressIndicator(
+                      value: levelProgress,
+
+                      minHeight: 14,
+
+                      backgroundColor: Colors.white24,
+
+                      valueColor: const AlwaysStoppedAnimation(Colors.white),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  Text(
+                    "${100 - (xp % 100)} XP until next level 🚀",
+
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
             Container(
               margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
