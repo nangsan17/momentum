@@ -1,4 +1,5 @@
-import 'dart:io';
+import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -26,59 +27,166 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   String username = 'Momentum User';
-
   String email = '';
-
-  String imagePath = '';
-
+  String imageBase64 = '';
   bool darkMode = false;
-
+  bool uploadingImage = false;
   TimeOfDay reminderTime = const TimeOfDay(hour: 8, minute: 0);
 
   @override
   void initState() {
     super.initState();
-
     darkMode = widget.isDarkMode;
-
     loadUser();
   }
 
   Future<void> loadUser() async {
     final user = FirebaseAuth.instance.currentUser;
-
     if (user == null) return;
 
     final data = await UserService().getUser(user.uid);
-
+    if (!mounted) return;
     setState(() {
       username = data?['username'] ?? 'Momentum User';
-
       email = data?['email'] ?? '';
-
-      imagePath = data?['imageUrl'] ?? '';
+      imageBase64 = data?['imageBase64'] ?? '';
     });
   }
 
   Future<void> pickImage() async {
     final picker = ImagePicker();
-
-    final picked = await picker.pickImage(source: ImageSource.gallery);
-
+    final picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 50,
+      maxWidth: 300,
+      maxHeight: 300,
+    );
     if (picked == null) return;
 
     final user = FirebaseAuth.instance.currentUser;
-
     if (user == null) return;
 
-    await UserService().updateProfileImage(
-      uid: user.uid,
-      imageUrl: picked.path,
-    );
+    setState(() => uploadingImage = true);
 
-    setState(() {
-      imagePath = picked.path;
-    });
+    try {
+      final Uint8List bytes = await picked.readAsBytes();
+      await UserService().uploadProfileImage(uid: user.uid, imageBytes: bytes);
+      if (!mounted) return;
+      setState(() {
+        imageBase64 = base64Encode(bytes);
+        uploadingImage = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile picture updated! ✅')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => uploadingImage = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to upload: $e')));
+    }
+  }
+
+  Future<void> showEditUsernameDialog() async {
+    final controller = TextEditingController(text: username);
+
+    await showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Text('Edit Username'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: InputDecoration(
+            hintText: 'Enter new username',
+            filled: true,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide.none,
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () async {
+              final newUsername = controller.text.trim();
+              if (newUsername.isEmpty) return;
+
+              final user = FirebaseAuth.instance.currentUser;
+              if (user == null) return;
+
+              await UserService().updateUsername(
+                uid: user.uid,
+                username: newUsername,
+              );
+
+              if (!mounted) return;
+              setState(() => username = newUsername);
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Username updated! ✅')),
+              );
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> showResetPasswordDialog() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || user.email == null) return;
+
+    await showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Text('Reset Password'),
+        content: Text('A reset link will be sent to:\n\n${user.email}'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () async {
+              await FirebaseAuth.instance.sendPasswordResetEmail(
+                email: user.email!,
+              );
+              if (!mounted) return;
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Reset email sent! Check your inbox 📧'),
+                ),
+              );
+            },
+            child: const Text('Send Email'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> pickReminderTime() async {
@@ -86,15 +194,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       initialTime: reminderTime,
     );
-
     if (time == null) return;
-
-    setState(() {
-      reminderTime = time;
-    });
-
+    setState(() => reminderTime = time);
     if (!mounted) return;
-
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Reminder set to ${time.format(context)} 🔔')),
     );
@@ -102,42 +204,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> logout() async {
     await FirebaseAuth.instance.signOut();
-
     if (!mounted) return;
-
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const LoginScreen()),
     );
   }
 
+  ImageProvider? get profileImage {
+    if (imageBase64.isNotEmpty) {
+      return MemoryImage(base64Decode(imageBase64));
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
-
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
-
         child: Column(
           children: [
+            // PROFILE PICTURE
             GestureDetector(
               onTap: pickImage,
-
               child: Stack(
                 children: [
                   CircleAvatar(
                     radius: 60,
-
                     backgroundColor: AppColors.primary,
-
-                    backgroundImage: imagePath.isNotEmpty
-                        ? FileImage(File(imagePath))
-                        : null,
-
-                    child: imagePath.isEmpty
+                    backgroundImage: profileImage,
+                    child: uploadingImage
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : profileImage == null
                         ? const Icon(
                             Icons.person,
                             size: 60,
@@ -145,21 +245,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           )
                         : null,
                   ),
-
                   Positioned(
                     right: 0,
                     bottom: 0,
-
                     child: Container(
                       padding: const EdgeInsets.all(8),
-
                       decoration: BoxDecoration(
                         color: AppColors.primary,
                         shape: BoxShape.circle,
                       ),
-
                       child: const Icon(
-                        Icons.edit,
+                        Icons.camera_alt,
                         color: Colors.white,
                         size: 18,
                       ),
@@ -189,7 +285,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               icon: Icons.person,
               title: 'Edit Profile',
               subtitle: 'Update your username',
-              onTap: () {},
+              onTap: showEditUsernameDialog,
             ),
 
             buildTile(
@@ -201,27 +297,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             Container(
               margin: const EdgeInsets.only(bottom: 16),
-
               decoration: BoxDecoration(
                 color: Theme.of(context).cardColor,
-
                 borderRadius: BorderRadius.circular(20),
               ),
-
               child: SwitchListTile(
                 value: darkMode,
-
                 activeColor: AppColors.primary,
-
                 title: const Text('Dark Mode 🌙'),
-
                 subtitle: const Text('Enable dark theme'),
-
                 onChanged: (value) {
-                  setState(() {
-                    darkMode = value;
-                  });
-
+                  setState(() => darkMode = value);
                   widget.onThemeChanged?.call(value);
                 },
               ),
@@ -231,7 +317,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               icon: Icons.calendar_month,
               title: 'Habit Calendar',
               subtitle: 'Track your consistency 📅',
-
               onTap: () {
                 Navigator.push(
                   context,
@@ -239,11 +324,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 );
               },
             ),
+
             buildTile(
               icon: Icons.emoji_events,
               title: 'Achievements',
               subtitle: 'View your unlocked badges 🏆',
-
               onTap: () {
                 Navigator.push(
                   context,
@@ -256,7 +341,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               icon: Icons.lock_reset,
               title: 'Reset Password',
               subtitle: 'Change your password',
-              onTap: () {},
+              onTap: showResetPasswordDialog,
             ),
 
             buildTile(
@@ -281,22 +366,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-
         borderRadius: BorderRadius.circular(20),
       ),
-
       child: ListTile(
         onTap: onTap,
-
         leading: Icon(icon, color: color ?? AppColors.primary),
-
         title: Text(title),
-
         subtitle: Text(subtitle),
-
         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
       ),
     );
