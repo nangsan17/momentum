@@ -1,102 +1,75 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/habit_model.dart';
 
 class HabitService {
-  final _firestore =
+  final FirebaseFirestore _firestore =
       FirebaseFirestore.instance;
 
-  final user =
-      FirebaseAuth.instance.currentUser;
-
-  CollectionReference get _habitRef =>
-      _firestore
-          .collection('users')
-          .doc(user!.uid)
-          .collection('habits');
+  final CollectionReference _habitRef =
+      FirebaseFirestore.instance.collection(
+        'habits',
+      );
 
   Stream<List<HabitModel>> getHabits() {
-    return _habitRef.snapshots().map(
-      (snapshot) {
-        return snapshot.docs.map((doc) {
-          return HabitModel.fromMap(
-            doc.data()
-                as Map<String, dynamic>,
-          );
-        }).toList();
-      },
-    );
+    return _habitRef.snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) {
+        final data = Map<String, dynamic>.from(doc.data() as Map);
+        return HabitModel.fromMap(data);
+      }).toList();
+    });
   }
 
   Future<void> addHabit(
     String title,
     String emoji,
+    String category,
   ) async {
     final doc = _habitRef.doc();
 
     final habit = HabitModel(
       id: doc.id,
       title: title,
-      emoji: emoji,
       completed: false,
       streak: 0,
-      lastCompleted: null,
+      emoji: emoji,
+      category: category,
+      completedDates: [],
     );
 
     await doc.set(habit.toMap());
   }
 
-  Future<void> updateHabit(
-    String id,
-    String newTitle,
-  ) async {
-    await _habitRef.doc(id).update({
-      'title': newTitle,
-    });
-  }
-
-  Future<void> deleteHabit(
-    String id,
-  ) async {
+  Future<void> deleteHabit(String id) async {
     await _habitRef.doc(id).delete();
   }
 
-  Future<void> toggleHabit(
-    HabitModel habit,
-  ) async {
+  Future<void> updateHabit(HabitModel habit) async {
+    await _habitRef.doc(habit.id).update(habit.toMap());
+  }
+
+  Future<void> toggleHabit(HabitModel habit) async {
     final now = DateTime.now();
+    final today = '${now.year}-${now.month}-${now.day}';
 
-    int newStreak = habit.streak;
+    List<String> updatedDates = List.from(habit.completedDates);
 
-    if (!habit.completed) {
-      if (habit.lastCompleted != null) {
-        final difference = now
-            .difference(
-              habit.lastCompleted!,
-            )
-            .inDays;
+    bool isCompletedToday = updatedDates.contains(today);
 
-        if (difference == 1) {
-          newStreak += 1;
-        } else if (difference > 1) {
-          newStreak = 1;
-        }
-      } else {
-        newStreak = 1;
-      }
+    if (isCompletedToday) {
+      updatedDates.remove(today);
     } else {
-      newStreak =
-          newStreak > 0
-              ? newStreak - 1
-              : 0;
+      updatedDates.add(today);
     }
 
     await _habitRef.doc(habit.id).update({
       'completed': !habit.completed,
-      'streak': newStreak,
-      'lastCompleted':
-          now.toIso8601String(),
+      'streak': !habit.completed
+          ? habit.streak + 1
+          : habit.streak > 0
+              ? habit.streak - 1
+              : 0,
+      'completedDates': updatedDates,
     });
   }
 }

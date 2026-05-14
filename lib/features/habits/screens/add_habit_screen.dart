@@ -1,201 +1,153 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/constants/app_colors.dart';
-import '../../../shared/widgets/primary_button.dart';
 import '../providers/habit_provider.dart';
 
-class AddHabitScreen
-    extends ConsumerStatefulWidget {
-  const AddHabitScreen({
-    super.key,
-  });
+class AddHabitScreen extends ConsumerStatefulWidget {
+  const AddHabitScreen({super.key});
 
   @override
-  ConsumerState<AddHabitScreen>
-  createState() =>
-      _AddHabitScreenState();
+  ConsumerState<AddHabitScreen> createState() => _AddHabitScreenState();
 }
 
-class _AddHabitScreenState
-    extends ConsumerState<AddHabitScreen> {
-  final titleController =
-      TextEditingController();
+class _AddHabitScreenState extends ConsumerState<AddHabitScreen> {
+  final titleController = TextEditingController();
 
   String selectedEmoji = '🔥';
 
-  final emojis = [
-    '🔥',
-    '💧',
-    '📚',
-    '🏃',
-    '💪',
-    '🧘',
-    '🎯',
-    '😴',
-  ];
+  String selectedCategory = 'General';
+
+  final emojis = ['🔥', '💧', '📚', '🏃', '💪', '🧘', '🎯', '🥗'];
+
+  final categories = ['General', 'Health', 'Study', 'Fitness', 'Productivity'];
 
   Future<void> saveHabit() async {
-    if (titleController.text
-        .trim()
-        .isEmpty) {
+    if (titleController.text.trim().isEmpty) {
       return;
     }
 
     await ref
         .read(habitServiceProvider)
-        .addHabit(
-          titleController.text.trim(),
-          selectedEmoji,
-        );
+        .addHabit(titleController.text.trim(), selectedEmoji, selectedCategory);
 
     if (!mounted) return;
-
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Habit added successfully 🔥',
-            ),
-          ),
-        );
 
     Navigator.pop(context);
   }
 
   @override
-  void dispose() {
-    titleController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor:
-          AppColors.background,
-
-      appBar: AppBar(
-        backgroundColor:
-            AppColors.background,
-
-        title: const Text(
-          'New Habit',
-        ),
-      ),
+      appBar: AppBar(title: const Text('Add Habit')),
 
       body: Padding(
-        padding:
-            const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
 
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+
           children: [
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(
-                    horizontal: 20,
-                  ),
+            TextField(
+              controller: titleController,
 
-              decoration: BoxDecoration(
-                color: Colors.white,
+              decoration: InputDecoration(
+                hintText: 'Habit title',
 
-                borderRadius:
-                    BorderRadius.circular(
-                      20,
-                    ),
-              ),
+                filled: true,
 
-              child: TextField(
-                controller:
-                    titleController,
+                fillColor: isDark ? Colors.grey.shade900 : Colors.white,
 
-                decoration:
-                    const InputDecoration(
-                      border:
-                          InputBorder.none,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
 
-                      hintText:
-                          'Habit name',
-                    ),
+                  borderSide: BorderSide.none,
+                ),
               ),
             ),
 
             const SizedBox(height: 24),
+
+            const Text(
+              'Choose Emoji',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+
+            const SizedBox(height: 12),
+
+            Wrap(
+              spacing: 10,
+
+              children: emojis.map((emoji) {
+                final selected = selectedEmoji == emoji;
+
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      selectedEmoji = emoji;
+                    });
+                  },
+
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+
+                    decoration: BoxDecoration(
+                      color: selected ? Colors.orange : Colors.grey.shade300,
+
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+
+                    child: Text(emoji, style: const TextStyle(fontSize: 24)),
+                  ),
+                );
+              }).toList(),
+            ),
+
+            const SizedBox(height: 24),
+
+            DropdownButtonFormField<String>(
+              value: selectedCategory,
+
+              items: categories.map((category) {
+                return DropdownMenuItem(value: category, child: Text(category));
+              }).toList(),
+
+              onChanged: (value) {
+                setState(() {
+                  selectedCategory = value!;
+                });
+              },
+
+              decoration: InputDecoration(
+                filled: true,
+
+                fillColor: isDark ? Colors.grey.shade900 : Colors.white,
+
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+
+            const Spacer(),
 
             SizedBox(
-              height: 60,
+              width: double.infinity,
 
-              child: ListView.builder(
-                scrollDirection:
-                    Axis.horizontal,
+              child: ElevatedButton(
+                onPressed: saveHabit,
 
-                itemCount: emojis.length,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
 
-                itemBuilder: (
-                  _,
-                  index,
-                ) {
-                  final emoji =
-                      emojis[index];
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
 
-                  final selected =
-                      selectedEmoji ==
-                          emoji;
-
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        selectedEmoji =
-                            emoji;
-                      });
-                    },
-
-                    child: Container(
-                      margin:
-                          const EdgeInsets.only(
-                            right: 12,
-                          ),
-
-                      width: 55,
-                      height: 55,
-
-                      decoration:
-                          BoxDecoration(
-                            color:
-                                selected
-                                    ? AppColors
-                                        .primary
-                                    : Colors
-                                        .white,
-
-                            borderRadius:
-                                BorderRadius.circular(
-                                  16,
-                                ),
-                          ),
-
-                      child: Center(
-                        child: Text(
-                          emoji,
-
-                          style:
-                              const TextStyle(
-                                fontSize:
-                                    28,
-                              ),
-                        ),
-                      ),
-                    ),
-                  );
-                },
+                child: const Text('Save Habit'),
               ),
-            ),
-
-            const SizedBox(height: 24),
-
-            PrimaryButton(
-              text: 'Save Habit',
-              onPressed: saveHabit,
             ),
           ],
         ),

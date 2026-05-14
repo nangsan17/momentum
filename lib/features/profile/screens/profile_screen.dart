@@ -1,255 +1,304 @@
+import 'dart:io';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
-import '../../../core/constants/app_colors.dart';
-import '../../../core/providers/theme_provider.dart';
-import '../../../core/services/notification_service.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../auth/screens/login_screen.dart';
 import '../../auth/services/user_service.dart';
-import '../widgets/achievement_card.dart';
+import '../../calendar/screens/calendar_screen.dart';
+import '../../achievements/screens/achievement_screen.dart';
 
-class ProfileScreen extends ConsumerWidget {
-  const ProfileScreen({super.key});
+class ProfileScreen extends StatefulWidget {
+  final Function(bool)? onThemeChanged;
+  final bool isDarkMode;
 
-  Future<void> logout(BuildContext context) async {
-    await FirebaseAuth.instance.signOut();
+  const ProfileScreen({
+    super.key,
+    this.onThemeChanged,
+    this.isDarkMode = false,
+  });
 
-    if (!context.mounted) return;
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
 
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-      (route) => false,
-    );
+class _ProfileScreenState extends State<ProfileScreen> {
+  String username = 'Momentum User';
+
+  String email = '';
+
+  String imagePath = '';
+
+  bool darkMode = false;
+
+  TimeOfDay reminderTime = const TimeOfDay(hour: 8, minute: 0);
+
+  @override
+  void initState() {
+    super.initState();
+
+    darkMode = widget.isDarkMode;
+
+    loadUser();
   }
 
-  Future<void> resetPassword(BuildContext context) async {
-    final email = FirebaseAuth.instance.currentUser?.email;
+  Future<void> loadUser() async {
+    final user = FirebaseAuth.instance.currentUser;
 
-    if (email == null) return;
+    if (user == null) return;
 
-    await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+    final data = await UserService().getUser(user.uid);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Password reset email sent ✨')),
-    );
+    setState(() {
+      username = data?['username'] ?? 'Momentum User';
+
+      email = data?['email'] ?? '';
+
+      imagePath = data?['imageUrl'] ?? '';
+    });
   }
 
-  Future<void> pickReminderTime(BuildContext context) async {
+  Future<void> pickImage() async {
+    final picker = ImagePicker();
+
+    final picked = await picker.pickImage(source: ImageSource.gallery);
+
+    if (picked == null) return;
+
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) return;
+
+    await UserService().updateProfileImage(
+      uid: user.uid,
+      imageUrl: picked.path,
+    );
+
+    setState(() {
+      imagePath = picked.path;
+    });
+  }
+
+  Future<void> pickReminderTime() async {
     final time = await showTimePicker(
       context: context,
-
-      initialTime: const TimeOfDay(hour: 21, minute: 0),
+      initialTime: reminderTime,
     );
 
     if (time == null) return;
 
-    await NotificationService.scheduleCustomNotification(
-      time.hour,
-      time.minute,
-    );
+    setState(() {
+      reminderTime = time;
+    });
 
-    if (!context.mounted) return;
+    if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Reminder set for ${time.format(context)} 🔥')),
+      SnackBar(content: Text('Reminder set to ${time.format(context)} 🔔')),
+    );
+  }
+
+  Future<void> logout() async {
+    await FirebaseAuth.instance.signOut();
+
+    if (!mounted) return;
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
     );
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = ref.watch(themeProvider);
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return StreamBuilder(
-      stream: UserService().getUserStream(),
+    return Scaffold(
+      appBar: AppBar(title: const Text('Profile')),
 
-      builder: (context, snapshot) {
-        final data = snapshot.data?.data();
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
 
-        final username = data?['name'] ?? 'Momentum User';
+        child: Column(
+          children: [
+            GestureDetector(
+              onTap: pickImage,
 
-        final email = data?['email'] ?? '';
+              child: Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 60,
 
-        return Scaffold(
-          backgroundColor: AppColors.background,
+                    backgroundColor: AppColors.primary,
 
-          body: SafeArea(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
+                    backgroundImage: imagePath.isNotEmpty
+                        ? FileImage(File(imagePath))
+                        : null,
 
-                child: Column(
-                  children: [
-                    const SizedBox(height: 40),
+                    child: imagePath.isEmpty
+                        ? const Icon(
+                            Icons.person,
+                            size: 60,
+                            color: Colors.white,
+                          )
+                        : null,
+                  ),
 
-                    const CircleAvatar(
-                      radius: 55,
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
 
-                      backgroundColor: AppColors.primary,
-
-                      child: Icon(Icons.person, size: 55, color: Colors.white),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    Text(
-                      username,
-
-                      style: const TextStyle(
-                        fontSize: 30,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-
-                    const SizedBox(height: 10),
-
-                    Text(
-                      email,
-
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 16,
-                      ),
-                    ),
-
-                    const SizedBox(height: 40),
-
-                    const Align(
-                      alignment: Alignment.centerLeft,
-
-                      child: Text(
-                        'Achievements 🏆',
-
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    SizedBox(
-                      height: 170,
-
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-
-                        children: const [
-                          AchievementCard(title: '7 Day Streak', emoji: '🔥'),
-
-                          AchievementCard(title: 'First Habit', emoji: '🚀'),
-
-                          AchievementCard(
-                            title: 'Consistency King',
-                            emoji: '👑',
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 30),
-
-                    Container(
-                      width: double.infinity,
-
-                      padding: const EdgeInsets.all(20),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
 
                       decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                      ),
+
+                      child: const Icon(
+                        Icons.edit,
                         color: Colors.white,
-
-                        borderRadius: BorderRadius.circular(28),
-                      ),
-
-                      child: Column(
-                        children: [
-                          ListTile(
-                            leading: const Icon(
-                              Icons.notifications_active_rounded,
-                              color: AppColors.primary,
-                            ),
-
-                            title: const Text('Set Reminder Time 🔔'),
-
-                            subtitle: const Text('Choose your daily reminder'),
-
-                            onTap: () => pickReminderTime(context),
-                          ),
-
-                          const Divider(),
-
-                          SwitchListTile(
-                            value: isDark,
-
-                            title: const Text('Dark Mode 🌙'),
-
-                            onChanged: (value) {
-                              ref.read(themeProvider.notifier).state = value;
-                            },
-                          ),
-
-                          const Divider(),
-
-                          ListTile(
-                            leading: const Icon(
-                              Icons.calendar_month,
-                              color: Colors.orange,
-                            ),
-
-                            title: const Text('Habit Calendar'),
-
-                            subtitle: const Text('Track your consistency 📅'),
-                          ),
-
-                          const Divider(),
-
-                          ListTile(
-                            leading: const Icon(
-                              Icons.lock_reset_rounded,
-                              color: Colors.orange,
-                            ),
-
-                            title: const Text('Reset Password'),
-
-                            onTap: () => resetPassword(context),
-                          ),
-
-                          const Divider(),
-
-                          ListTile(
-                            leading: const Icon(
-                              Icons.logout_rounded,
-                              color: Colors.red,
-                            ),
-
-                            title: const Text('Logout'),
-
-                            onTap: () => logout(context),
-                          ),
-                        ],
+                        size: 18,
                       ),
                     ),
-
-                    const SizedBox(height: 30),
-
-                    const Text(
-                      'Keep building consistency 🔥',
-
-                      style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 16,
-                      ),
-                    ),
-
-                    const SizedBox(height: 40),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-          ),
-        );
-      },
+
+            const SizedBox(height: 20),
+
+            Text(
+              username,
+              style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+            ),
+
+            const SizedBox(height: 8),
+
+            Text(
+              email,
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+            ),
+
+            const SizedBox(height: 40),
+
+            buildTile(
+              icon: Icons.person,
+              title: 'Edit Profile',
+              subtitle: 'Update your username',
+              onTap: () {},
+            ),
+
+            buildTile(
+              icon: Icons.notifications,
+              title: 'Reminder Time 🔔',
+              subtitle: 'Choose your daily reminder',
+              onTap: pickReminderTime,
+            ),
+
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+
+                borderRadius: BorderRadius.circular(20),
+              ),
+
+              child: SwitchListTile(
+                value: darkMode,
+
+                activeColor: AppColors.primary,
+
+                title: const Text('Dark Mode 🌙'),
+
+                subtitle: const Text('Enable dark theme'),
+
+                onChanged: (value) {
+                  setState(() {
+                    darkMode = value;
+                  });
+
+                  widget.onThemeChanged?.call(value);
+                },
+              ),
+            ),
+
+            buildTile(
+              icon: Icons.calendar_month,
+              title: 'Habit Calendar',
+              subtitle: 'Track your consistency 📅',
+
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CalendarScreen()),
+                );
+              },
+            ),
+            buildTile(
+              icon: Icons.emoji_events,
+              title: 'Achievements',
+              subtitle: 'View your unlocked badges 🏆',
+
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AchievementScreen()),
+                );
+              },
+            ),
+
+            buildTile(
+              icon: Icons.lock_reset,
+              title: 'Reset Password',
+              subtitle: 'Change your password',
+              onTap: () {},
+            ),
+
+            buildTile(
+              icon: Icons.logout,
+              title: 'Logout',
+              subtitle: 'Sign out from account',
+              color: Colors.red,
+              onTap: logout,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget buildTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    Color? color,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+
+        borderRadius: BorderRadius.circular(20),
+      ),
+
+      child: ListTile(
+        onTap: onTap,
+
+        leading: Icon(icon, color: color ?? AppColors.primary),
+
+        title: Text(title),
+
+        subtitle: Text(subtitle),
+
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+      ),
     );
   }
 }
