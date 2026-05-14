@@ -222,7 +222,12 @@ class AnalyticsScreen extends ConsumerWidget {
                 const SizedBox(height: 8),
                 Text(
                   'Track your habit consistency',
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 16,
+                    letterSpacing: -1,
+                    height: 1.1,
+                  ),
                 ),
                 const SizedBox(height: 28),
 
@@ -361,7 +366,7 @@ class AnalyticsScreen extends ConsumerWidget {
                   physics: const NeverScrollableScrollPhysics(),
                   crossAxisSpacing: 16,
                   mainAxisSpacing: 16,
-                  childAspectRatio: 1.3,
+                  childAspectRatio: 1.1,
                   children: [
                     buildStatCard(
                       context,
@@ -402,7 +407,7 @@ class AnalyticsScreen extends ConsumerWidget {
                     gradient: LinearGradient(
                       colors: challengeCompleted
                           ? [const Color(0xFFFFB75E), const Color(0xFFED8F03)]
-                          : [const Color(0xFF6D5DF6), const Color(0xFF46A0FF)],
+                          : [const Color(0xFFFFD6C9), const Color(0xFFE7C6FF)],
                     ),
 
                     borderRadius: BorderRadius.circular(28),
@@ -585,7 +590,7 @@ class AnalyticsScreen extends ConsumerWidget {
                                       titleStyle: const TextStyle(
                                         fontSize: 20,
                                         fontWeight: FontWeight.bold,
-                                        color: Colors.white,
+                                        color: const Color(0xFF2B2B2B),
                                       ),
                                     ),
                                     PieChartSectionData(

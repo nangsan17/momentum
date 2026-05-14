@@ -10,6 +10,8 @@ import '../../auth/screens/login_screen.dart';
 import '../../auth/services/user_service.dart';
 import '../../calendar/screens/calendar_screen.dart';
 import '../../achievements/screens/achievement_screen.dart';
+import '../../calendar/screens/calendar_screen.dart';
+import '../../achievements/screens/achievement_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final Function(bool)? onThemeChanged;
