@@ -6,6 +6,7 @@ import '../models/habit_model.dart';
 import '../providers/habit_provider.dart';
 import 'add_habit_screen.dart';
 import 'edit_habit_screen.dart';
+import 'habit_detail_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -211,107 +212,123 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 }
                               },
 
-                              child: Container(
-                                padding: const EdgeInsets.all(20),
-
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).cardColor,
-
-                                  borderRadius: BorderRadius.circular(24),
-                                ),
-
-                                child: Row(
-                                  children: [
-                                    Text(
-                                      habit.emoji,
-
-                                      style: const TextStyle(fontSize: 40),
+                              child: GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          HabitDetailScreen(habit: habit),
                                     ),
+                                  );
+                                },
 
-                                    const SizedBox(width: 18),
+                                child: Container(
+                                  padding: const EdgeInsets.all(20),
 
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).cardColor,
 
-                                        children: [
-                                          Text(
-                                            habit.title,
+                                    borderRadius: BorderRadius.circular(24),
+                                  ),
 
-                                            style: const TextStyle(
-                                              fontSize: 24,
+                                  child: Row(
+                                    children: [
+                                      Text(
+                                        habit.emoji,
 
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-
-                                          Text(habit.category),
-
-                                          const SizedBox(height: 6),
-
-                                          Text('🔥 ${habit.streak} day streak'),
-
-                                          if (habit.reminderEnabled &&
-                                              habit.reminderTime != null)
-                                            Padding(
-                                              padding: const EdgeInsets.only(
-                                                top: 4,
-                                              ),
-
-                                              child: Row(
-                                                children: [
-                                                  const Icon(
-                                                    Icons.notifications_active,
-
-                                                    size: 14,
-
-                                                    color: AppColors.primary,
-                                                  ),
-
-                                                  const SizedBox(width: 4),
-
-                                                  Text(habit.reminderTime!),
-                                                ],
-                                              ),
-                                            ),
-                                        ],
+                                        style: const TextStyle(fontSize: 40),
                                       ),
-                                    ),
 
-                                    Column(
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(Icons.edit),
+                                      const SizedBox(width: 18),
 
-                                          onPressed: () {
-                                            Navigator.push(
-                                              context,
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
 
-                                              MaterialPageRoute(
-                                                builder: (_) => EditHabitScreen(
-                                                  habit: habit,
+                                          children: [
+                                            Text(
+                                              habit.title,
+
+                                              style: const TextStyle(
+                                                fontSize: 24,
+
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+
+                                            Text(habit.category),
+
+                                            const SizedBox(height: 6),
+
+                                            Text(
+                                              '🔥 ${habit.streak} day streak',
+                                            ),
+
+                                            if (habit.reminderEnabled &&
+                                                habit.reminderTime != null)
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                  top: 4,
+                                                ),
+
+                                                child: Row(
+                                                  children: [
+                                                    const Icon(
+                                                      Icons
+                                                          .notifications_active,
+
+                                                      size: 14,
+
+                                                      color: AppColors.primary,
+                                                    ),
+
+                                                    const SizedBox(width: 4),
+
+                                                    Text(habit.reminderTime!),
+                                                  ],
                                                 ),
                                               ),
-                                            );
-                                          },
+                                          ],
                                         ),
+                                      ),
 
-                                        Checkbox(
-                                          value: habit.completed,
+                                      Column(
+                                        children: [
+                                          IconButton(
+                                            icon: const Icon(Icons.edit),
 
-                                          onChanged: (_) async {
-                                            await ref
-                                                .read(habitServiceProvider)
-                                                .toggleHabit(habit);
-                                          },
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
+                                            onPressed: () {
+                                              Navigator.push(
+                                                context,
+
+                                                MaterialPageRoute(
+                                                  builder: (_) =>
+                                                      EditHabitScreen(
+                                                        habit: habit,
+                                                      ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+
+                                          Checkbox(
+                                            value: habit.completed,
+
+                                            onChanged: (_) async {
+                                              await ref
+                                                  .read(habitServiceProvider)
+                                                  .toggleHabit(habit);
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ), // Row
+                                ), // Container
+                              ), // GestureDetector
+                            ), // Dismissible
                           );
                         },
                       ),
