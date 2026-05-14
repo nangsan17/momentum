@@ -55,27 +55,60 @@ class HabitService {
     await _habitRef.doc(habit.id).update(habit.toMap());
   }
 
-  Future<void> toggleHabit(HabitModel habit) async {
-    final now = DateTime.now();
-    final today = '${now.year}-${now.month}-${now.day}';
+  Future<void> toggleHabit(
+  HabitModel habit, {
+  String mood = "",
+  String reflection = "",
+}) async {
 
-    List<String> updatedDates = List.from(habit.completedDates);
-    bool isCompletedToday = updatedDates.contains(today);
+  final now = DateTime.now();
 
-    if (isCompletedToday) {
-      updatedDates.remove(today);
-    } else {
-      updatedDates.add(today);
-    }
+  final today =
+      '${now.year}-${now.month}-${now.day}';
 
-    await _habitRef.doc(habit.id).update({
-      'completed': !habit.completed,
-      'streak': !habit.completed
-          ? habit.streak + 1
-          : habit.streak > 0
-              ? habit.streak - 1
-              : 0,
-      'completedDates': updatedDates,
-    });
+  List<String>
+      updatedDates =
+      List.from(
+    habit.completedDates,
+  );
+
+  bool isCompletedToday =
+      updatedDates.contains(
+    today,
+  );
+
+  if (isCompletedToday) {
+    updatedDates.remove(
+      today,
+    );
+  } else {
+    updatedDates.add(
+      today,
+    );
   }
+
+  await _habitRef
+      .doc(habit.id)
+      .update({
+    'completed':
+        !habit.completed,
+
+    'streak':
+        !habit.completed
+            ? habit.streak +
+                1
+            : habit.streak > 0
+                ? habit.streak -
+                    1
+                : 0,
+
+    'completedDates':
+        updatedDates,
+
+    'mood': mood,
+
+    'reflection':
+        reflection,
+  });
+}
 }

@@ -67,6 +67,116 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+  String generateMoodReply(String text) {
+    final input = text.toLowerCase();
+
+    if (input.contains("tired") || input.contains("sleepy")) {
+      return "😴 You seem tired today...drink more water and rest well!!";
+    }
+
+    if (input.contains("sad") ||
+        input.contains("stress") ||
+        input.contains("exam")) {
+      return "💙 Tough days happen, relax yourself by doing yoga!";
+    }
+
+    if (input.contains("happy") || input.contains("productive")) {
+      return "Ohooo You're in a strong zone today, Keep riding the momentum!!";
+    }
+
+    if (input.contains("gym")) {
+      return "💪 Nice work. Physical consistency builds mental consistency too!!";
+    }
+
+    return "🔥 Great effort today!!";
+  }
+
+  Future<void> showMoodDialog(HabitModel habit) async {
+    String mood = "😄";
+
+    final noteController = TextEditingController();
+
+    await showDialog(
+      context: context,
+
+      builder: (_) {
+        return AlertDialog(
+          title: const Text("How did today feel?"),
+
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+
+            children: [
+              Wrap(
+                spacing: 10,
+
+                children: ["😄", "🙂", "😐", "😩"].map((e) {
+                  return GestureDetector(
+                    onTap: () {
+                      mood = e;
+                    },
+
+                    child: Text(e, style: const TextStyle(fontSize: 36)),
+                  );
+                }).toList(),
+              ),
+
+              const SizedBox(height: 20),
+
+              TextField(
+                controller: noteController,
+
+                decoration: const InputDecoration(hintText: "Reflection..."),
+              ),
+            ],
+          ),
+
+          actions: [
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(context);
+
+                await ref
+                    .read(habitServiceProvider)
+                    .toggleHabit(
+                      habit,
+
+                      mood: mood,
+
+                      reflection: noteController.text,
+                    );
+                if (!mounted) return;
+
+                showDialog(
+                  context: context,
+                  builder: (_) {
+                    return AlertDialog(
+                      title: const Text("🤖 AI Coach"),
+
+                      content: Text(generateMoodReply(noteController.text)),
+
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+
+                          child: const Text("Nice 🔥"),
+                        ),
+                      ],
+                    );
+                  },
+                );
+              },
+
+              child: const Text("Save"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final habitsAsync = ref.watch(habitProvider);
@@ -317,18 +427,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                             value: habit.completed,
 
                                             onChanged: (_) async {
-                                              await ref
-                                                  .read(habitServiceProvider)
-                                                  .toggleHabit(habit);
+                                              if (!habit.completed) {
+                                                showMoodDialog(habit);
+                                              } else {
+                                                await ref
+                                                    .read(habitServiceProvider)
+                                                    .toggleHabit(habit);
+                                              }
                                             },
                                           ),
                                         ],
                                       ),
                                     ],
-                                  ), // Row
-                                ), // Container
-                              ), // GestureDetector
-                            ), // Dismissible
+                                  ),
+                                ),
+                              ),
+                            ),
                           );
                         },
                       ),
