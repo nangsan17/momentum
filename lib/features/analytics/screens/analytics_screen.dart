@@ -22,6 +22,62 @@ class AnalyticsScreen extends ConsumerWidget {
     });
   }
 
+  String generateAiInsight(List<HabitModel> habits) {
+    if (habits.isEmpty) {
+      return "Start your first habit, Momentum grows from small wins!!";
+    }
+
+    final completed = habits.where((h) => h.completed).length;
+
+    final pending = habits.where((h) => !h.completed).length;
+
+    final bestHabit = habits.reduce((a, b) => a.streak > b.streak ? a : b);
+
+    final categoryMap = <String, int>{};
+
+    for (var h in habits) {
+      categoryMap[h.category] = (categoryMap[h.category] ?? 0) + 1;
+    }
+
+    final topCategory = categoryMap.entries
+        .reduce((a, b) => a.value > b.value ? a : b)
+        .key;
+
+    final completionRate = completed / habits.length;
+
+    // strong streak
+    if (bestHabit.streak >= 15) {
+      return "👑 ${bestHabit.title} is dominating with a ${bestHabit.streak}-day streak. You're operating at elite consistency.";
+    }
+
+    // almost new record
+    if (bestHabit.streak >= 7) {
+      return "🔥 You're close to a new personal record. ${bestHabit.title} is carrying momentum.";
+    }
+
+    // productivity heavy
+    if (topCategory == "Productivity") {
+      return "⚡ Productivity dominates your habits. Consider balancing with Health or Fitness.";
+    }
+
+    // study heavy
+    if (topCategory == "Study") {
+      return "📚 You focus heavily on Study habits. Add breaks to avoid burnout.";
+    }
+
+    // low completion
+    if (completionRate < .30) {
+      return "👀 You're completing only ${(completionRate * 100).toInt()}% of habits today. Try reducing goals and build momentum.";
+    }
+
+    // many pending
+    if (pending >= 5) {
+      return "⏳ You have $pending pending habits. Finish one small task first.";
+    }
+
+    return "🚀 ${completed} habits completed today. Momentum is building!!";
+  }
+
   String getDayLabel(int index) {
     final now = DateTime.now();
     final day = now.subtract(Duration(days: 6 - index));
@@ -74,6 +130,58 @@ class AnalyticsScreen extends ConsumerWidget {
                   style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
                 ),
                 const SizedBox(height: 28),
+
+                // AI COACH
+                Container(
+                  margin: const EdgeInsets.only(bottom: 28),
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(24),
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF6D5DF6), Color(0xFF46A0FF)],
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white24,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Text("🤖", style: TextStyle(fontSize: 32)),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "Momentum AI Coach",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              generateAiInsight(habits),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                height: 1.5,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
 
                 // STATS GRID
                 GridView.count(
