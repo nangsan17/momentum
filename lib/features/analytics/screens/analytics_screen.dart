@@ -22,6 +22,34 @@ class AnalyticsScreen extends ConsumerWidget {
     });
   }
 
+  int getWeeklyCompletedHabits(List<HabitModel> habits) {
+    final now = DateTime.now();
+
+    int total = 0;
+
+    for (final habit in habits) {
+      for (final date in habit.completedDates) {
+        final parts = date.split('-');
+
+        if (parts.length != 3) continue;
+
+        final completedDate = DateTime(
+          int.parse(parts[0]),
+          int.parse(parts[1]),
+          int.parse(parts[2]),
+        );
+
+        final difference = now.difference(completedDate).inDays;
+
+        if (difference >= 0 && difference < 7) {
+          total++;
+        }
+      }
+    }
+
+    return total;
+  }
+
   String generateAiInsight(List<HabitModel> habits) {
     if (habits.isEmpty) {
       return "Start your first habit, Momentum grows from small wins!!";
@@ -165,6 +193,14 @@ class AnalyticsScreen extends ConsumerWidget {
               .map((h) => h.completedDates.length)
               .fold(0, (a, b) => a + b);
           final weeklyData = getWeeklyData(habits);
+          final weeklyCompleted = getWeeklyCompletedHabits(habits);
+
+          const weeklyGoal = 7;
+
+          final weeklyProgress = weeklyCompleted / weeklyGoal;
+
+          final challengeCompleted = weeklyCompleted >= weeklyGoal;
+
           final maxY = weeklyData.isEmpty
               ? 5.0
               : weeklyData.reduce((a, b) => a > b ? a : b) + 1;
@@ -355,6 +391,111 @@ class AnalyticsScreen extends ConsumerWidget {
                 ),
 
                 const SizedBox(height: 32),
+
+                //Weekly Challenge
+                Container(
+                  margin: const EdgeInsets.only(bottom: 28),
+
+                  padding: const EdgeInsets.all(24),
+
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: challengeCompleted
+                          ? [const Color(0xFFFFB75E), const Color(0xFFED8F03)]
+                          : [const Color(0xFF6D5DF6), const Color(0xFF46A0FF)],
+                    ),
+
+                    borderRadius: BorderRadius.circular(28),
+                  ),
+
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+
+                    children: [
+                      Row(
+                        children: [
+                          const Text("🔥", style: TextStyle(fontSize: 34)),
+
+                          const SizedBox(width: 14),
+
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+
+                              children: [
+                                Text(
+                                  challengeCompleted
+                                      ? "Challenge Complete!"
+                                      : "Weekly Challenge",
+
+                                  style: const TextStyle(
+                                    color: Colors.white,
+
+                                    fontSize: 22,
+
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+
+                                const SizedBox(height: 4),
+
+                                Text(
+                                  challengeCompleted
+                                      ? "You crushed this week's goal 🚀"
+                                      : "Complete 7 habits this week",
+
+                                  style: const TextStyle(color: Colors.white70),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+
+                        child: LinearProgressIndicator(
+                          value: weeklyProgress.clamp(0, 1),
+
+                          minHeight: 14,
+
+                          backgroundColor: Colors.white24,
+
+                          valueColor: const AlwaysStoppedAnimation(
+                            Colors.white,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 14),
+
+                      Text(
+                        "$weeklyCompleted / $weeklyGoal completed",
+
+                        style: const TextStyle(
+                          color: Colors.white,
+
+                          fontWeight: FontWeight.bold,
+
+                          fontSize: 16,
+                        ),
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      Text(
+                        challengeCompleted
+                            ? "🏆 Bonus XP earned!"
+                            : "${weeklyGoal - weeklyCompleted} habits left this week 👀",
+
+                        style: const TextStyle(color: Colors.white70),
+                      ),
+                    ],
+                  ),
+                ),
 
                 // BEST HABIT CARD
                 if (bestHabit != null && bestHabit.streak > 0) ...[
