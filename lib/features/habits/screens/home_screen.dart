@@ -15,29 +15,15 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  @override
-  Widget build(BuildContext context) {
-    return const HomeContent();
-  }
-}
-
-class HomeContent extends ConsumerStatefulWidget {
-  const HomeContent({super.key});
-
-  @override
-  ConsumerState<HomeContent> createState() => _HomeContentState();
-}
-
-class _HomeContentState extends ConsumerState<HomeContent> {
-  String selectedFilter = 'All';
-
   final searchController = TextEditingController();
 
+  String selectedFilter = 'All';
+
   List<HabitModel> filterHabits(List<HabitModel> habits) {
-    List<HabitModel> filtered = habits;
+    var filtered = habits;
 
     // SEARCH
-    if (searchController.text.isNotEmpty) {
+    if (searchController.text.trim().isNotEmpty) {
       filtered = filtered.where((habit) {
         return habit.title.toLowerCase().contains(
           searchController.text.toLowerCase(),
@@ -45,12 +31,16 @@ class _HomeContentState extends ConsumerState<HomeContent> {
       }).toList();
     }
 
-    // FILTERS
+    // COMPLETED
     if (selectedFilter == 'Completed') {
       filtered = filtered.where((habit) => habit.completed).toList();
-    } else if (selectedFilter == 'Pending') {
+    }
+    // PENDING
+    else if (selectedFilter == 'Pending') {
       filtered = filtered.where((habit) => !habit.completed).toList();
-    } else if (selectedFilter != 'All') {
+    }
+    // CATEGORYS
+    else if (selectedFilter != 'All') {
       filtered = filtered
           .where((habit) => habit.category == selectedFilter)
           .toList();
@@ -60,13 +50,13 @@ class _HomeContentState extends ConsumerState<HomeContent> {
   }
 
   Widget buildFilterChip(String label) {
-    final selected = selectedFilter == label;
-
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: ChoiceChip(
         label: Text(label),
-        selected: selected,
+
+        selected: selectedFilter == label,
+
         onSelected: (_) {
           setState(() {
             selectedFilter = label;
@@ -85,7 +75,9 @@ class _HomeContentState extends ConsumerState<HomeContent> {
 
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.primary,
+
         child: const Icon(Icons.add),
+
         onPressed: () {
           Navigator.push(
             context,
@@ -100,39 +92,53 @@ class _HomeContentState extends ConsumerState<HomeContent> {
 
           return Column(
             children: [
-              // SEARCH
               Padding(
                 padding: const EdgeInsets.all(16),
+
                 child: TextField(
                   controller: searchController,
+
                   onChanged: (_) {
                     setState(() {});
                   },
+
                   decoration: InputDecoration(
                     hintText: 'Search habits...',
+
                     prefixIcon: const Icon(Icons.search),
-                    filled: true,
+
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(18),
+
                       borderSide: BorderSide.none,
                     ),
+
+                    filled: true,
                   ),
                 ),
               ),
 
-              // FILTERS
               SizedBox(
                 height: 50,
+
                 child: ListView(
                   scrollDirection: Axis.horizontal,
+
                   padding: const EdgeInsets.symmetric(horizontal: 16),
+
                   children: [
                     buildFilterChip('All'),
+
                     buildFilterChip('Completed'),
+
                     buildFilterChip('Pending'),
+
                     buildFilterChip('Health'),
+
                     buildFilterChip('Study'),
+
                     buildFilterChip('Fitness'),
+
                     buildFilterChip('Productivity'),
                   ],
                 ),
@@ -140,81 +146,58 @@ class _HomeContentState extends ConsumerState<HomeContent> {
 
               const SizedBox(height: 12),
 
-              // HABITS
               Expanded(
                 child: filteredHabits.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'No habits found 🔥',
-                          style: TextStyle(fontSize: 18),
-                        ),
-                      )
+                    ? const Center(child: Text('No habits found 🔥'))
                     : ListView.builder(
                         padding: const EdgeInsets.all(16),
+
                         itemCount: filteredHabits.length,
+
                         itemBuilder: (context, index) {
                           final habit = filteredHabits[index];
 
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 16),
+
                             child: Dismissible(
                               key: Key(habit.id),
 
                               background: Container(
                                 alignment: Alignment.centerLeft,
+
                                 padding: const EdgeInsets.only(left: 24),
+
                                 decoration: BoxDecoration(
                                   color: Colors.green,
+
                                   borderRadius: BorderRadius.circular(24),
                                 ),
+
                                 child: const Icon(
                                   Icons.check,
+
                                   color: Colors.white,
-                                  size: 32,
                                 ),
                               ),
 
                               secondaryBackground: Container(
                                 alignment: Alignment.centerRight,
+
                                 padding: const EdgeInsets.only(right: 24),
+
                                 decoration: BoxDecoration(
                                   color: Colors.red,
+
                                   borderRadius: BorderRadius.circular(24),
                                 ),
+
                                 child: const Icon(
                                   Icons.delete,
+
                                   color: Colors.white,
-                                  size: 32,
                                 ),
                               ),
-
-                              confirmDismiss: (direction) async {
-                                if (direction == DismissDirection.endToStart) {
-                                  return await showDialog(
-                                    context: context,
-                                    builder: (_) => AlertDialog(
-                                      title: const Text('Delete Habit'),
-                                      content: const Text('Are you sure?'),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () {
-                                            Navigator.pop(context, false);
-                                          },
-                                          child: const Text('Cancel'),
-                                        ),
-                                        TextButton(
-                                          onPressed: () {
-                                            Navigator.pop(context, true);
-                                          },
-                                          child: const Text('Delete'),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                }
-
-                                return true;
-                              },
 
                               onDismissed: (direction) async {
                                 if (direction == DismissDirection.startToEnd) {
@@ -228,93 +211,104 @@ class _HomeContentState extends ConsumerState<HomeContent> {
                                 }
                               },
 
-                              child: GestureDetector(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          EditHabitScreen(habit: habit),
+                              child: Container(
+                                padding: const EdgeInsets.all(20),
+
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).cardColor,
+
+                                  borderRadius: BorderRadius.circular(24),
+                                ),
+
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      habit.emoji,
+
+                                      style: const TextStyle(fontSize: 40),
                                     ),
-                                  );
-                                },
 
-                                child: Container(
-                                  padding: const EdgeInsets.all(20),
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(context).cardColor,
-                                    borderRadius: BorderRadius.circular(24),
-                                  ),
+                                    const SizedBox(width: 18),
 
-                                  child: Row(
-                                    children: [
-                                      Text(
-                                        habit.emoji,
-                                        style: const TextStyle(fontSize: 40),
-                                      ),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
 
-                                      const SizedBox(width: 18),
-
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              habit.title,
-                                              style: const TextStyle(
-                                                fontSize: 24,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-
-                                            const SizedBox(height: 4),
-
-                                            Text(
-                                              habit.category,
-                                              style: TextStyle(
-                                                color: Colors.grey.shade600,
-                                              ),
-                                            ),
-
-                                            const SizedBox(height: 6),
-
-                                            Text(
-                                              '🔥 ${habit.streak} day streak',
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-
-                                      Column(
                                         children: [
-                                          IconButton(
-                                            icon: const Icon(Icons.edit),
-                                            onPressed: () {
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (_) =>
-                                                      EditHabitScreen(
-                                                        habit: habit,
-                                                      ),
-                                                ),
-                                              );
-                                            },
+                                          Text(
+                                            habit.title,
+
+                                            style: const TextStyle(
+                                              fontSize: 24,
+
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
 
-                                          Checkbox(
-                                            value: habit.completed,
-                                            onChanged: (_) async {
-                                              await ref
-                                                  .read(habitServiceProvider)
-                                                  .toggleHabit(habit);
-                                            },
-                                          ),
+                                          Text(habit.category),
+
+                                          const SizedBox(height: 6),
+
+                                          Text('🔥 ${habit.streak} day streak'),
+
+                                          if (habit.reminderEnabled &&
+                                              habit.reminderTime != null)
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                top: 4,
+                                              ),
+
+                                              child: Row(
+                                                children: [
+                                                  const Icon(
+                                                    Icons.notifications_active,
+
+                                                    size: 14,
+
+                                                    color: AppColors.primary,
+                                                  ),
+
+                                                  const SizedBox(width: 4),
+
+                                                  Text(habit.reminderTime!),
+                                                ],
+                                              ),
+                                            ),
                                         ],
                                       ),
-                                    ],
-                                  ),
+                                    ),
+
+                                    Column(
+                                      children: [
+                                        IconButton(
+                                          icon: const Icon(Icons.edit),
+
+                                          onPressed: () {
+                                            Navigator.push(
+                                              context,
+
+                                              MaterialPageRoute(
+                                                builder: (_) => EditHabitScreen(
+                                                  habit: habit,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+
+                                        Checkbox(
+                                          value: habit.completed,
+
+                                          onChanged: (_) async {
+                                            await ref
+                                                .read(habitServiceProvider)
+                                                .toggleHabit(habit);
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
@@ -326,9 +320,9 @@ class _HomeContentState extends ConsumerState<HomeContent> {
           );
         },
 
-        error: (e, _) => Center(child: Text(e.toString())),
-
         loading: () => const Center(child: CircularProgressIndicator()),
+
+        error: (e, _) => Center(child: Text(e.toString())),
       ),
     );
   }

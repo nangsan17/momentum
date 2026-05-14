@@ -6,6 +6,8 @@ class HabitModel {
   final String emoji;
   final String category;
   final List<String> completedDates;
+  final bool reminderEnabled;
+  final String? reminderTime; // stored as "HH:mm" e.g. "08:30"
 
   HabitModel({
     required this.id,
@@ -15,6 +17,8 @@ class HabitModel {
     required this.emoji,
     required this.category,
     required this.completedDates,
+    this.reminderEnabled = false,
+    this.reminderTime,
   });
 
   HabitModel copyWith({
@@ -25,6 +29,8 @@ class HabitModel {
     String? emoji,
     String? category,
     List<String>? completedDates,
+    bool? reminderEnabled,
+    String? reminderTime,
   }) {
     return HabitModel(
       id: id ?? this.id,
@@ -34,6 +40,8 @@ class HabitModel {
       emoji: emoji ?? this.emoji,
       category: category ?? this.category,
       completedDates: completedDates ?? this.completedDates,
+      reminderEnabled: reminderEnabled ?? this.reminderEnabled,
+      reminderTime: reminderTime ?? this.reminderTime,
     );
   }
 
@@ -46,6 +54,8 @@ class HabitModel {
       'emoji': emoji,
       'category': category,
       'completedDates': completedDates,
+      'reminderEnabled': reminderEnabled,
+      'reminderTime': reminderTime,
     };
   }
 
@@ -60,6 +70,8 @@ class HabitModel {
       completedDates: List<String>.from(
         (map['completedDates'] as List? ?? []).map((e) => e.toString()),
       ),
+      reminderEnabled: map['reminderEnabled'] ?? false,
+      reminderTime: map['reminderTime'],
     );
   }
 }

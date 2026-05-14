@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/theme/app_theme.dart';
+import 'core/services/notification_service.dart';
 import 'features/splash/screens/splash_screen.dart';
 import 'firebase_options.dart';
 
@@ -13,14 +14,21 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  runApp(const ProviderScope(child: MomentumApp()));
+  await NotificationService().init();
+
+  runApp(
+    const ProviderScope(
+      child: MomentumApp(),
+    ),
+  );
 }
 
 class MomentumApp extends StatefulWidget {
   const MomentumApp({super.key});
 
-  static _MomentumAppState? of(BuildContext context) =>
-      context.findAncestorStateOfType<_MomentumAppState>();
+  static _MomentumAppState? of(BuildContext context) {
+    return context.findAncestorStateOfType<_MomentumAppState>();
+  }
 
   @override
   State<MomentumApp> createState() => _MomentumAppState();
@@ -40,7 +48,11 @@ class _MomentumAppState extends State<MomentumApp> {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Momentum',
-      theme: isDarkMode ? AppTheme.darkTheme : AppTheme.lightTheme,
+      theme:
+          isDarkMode
+              ? AppTheme.darkTheme
+              : AppTheme.lightTheme,
+
       home: const SplashScreen(),
     );
   }

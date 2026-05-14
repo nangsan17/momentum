@@ -3,13 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/habit_model.dart';
 
 class HabitService {
-  final FirebaseFirestore _firestore =
-      FirebaseFirestore.instance;
-
   final CollectionReference _habitRef =
-      FirebaseFirestore.instance.collection(
-        'habits',
-      );
+      FirebaseFirestore.instance.collection('habits');
 
   Stream<List<HabitModel>> getHabits() {
     return _habitRef.snapshots().map((snapshot) {
@@ -20,11 +15,14 @@ class HabitService {
     });
   }
 
-  Future<void> addHabit(
+  // Returns habit ID so we can schedule notification
+  Future<String?> addHabit(
     String title,
     String emoji,
-    String category,
-  ) async {
+    String category, {
+    bool reminderEnabled = false,
+    String? reminderTime,
+  }) async {
     final doc = _habitRef.doc();
 
     final habit = HabitModel(
@@ -35,9 +33,12 @@ class HabitService {
       emoji: emoji,
       category: category,
       completedDates: [],
+      reminderEnabled: reminderEnabled,
+      reminderTime: reminderTime,
     );
 
     await doc.set(habit.toMap());
+    return doc.id;
   }
 
   Future<void> deleteHabit(String id) async {
@@ -53,7 +54,6 @@ class HabitService {
     final today = '${now.year}-${now.month}-${now.day}';
 
     List<String> updatedDates = List.from(habit.completedDates);
-
     bool isCompletedToday = updatedDates.contains(today);
 
     if (isCompletedToday) {

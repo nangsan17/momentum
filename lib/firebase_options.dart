@@ -83,4 +83,5 @@ class DefaultFirebaseOptions {
     authDomain: 'momentum-d7cf3.firebaseapp.com',
     storageBucket: 'momentum-d7cf3.firebasestorage.app',
   );
+
 }
