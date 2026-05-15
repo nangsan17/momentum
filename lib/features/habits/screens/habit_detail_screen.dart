@@ -1,30 +1,94 @@
 import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../models/habit_model.dart';
+import '../providers/habit_provider.dart';
 
-class HabitDetailScreen extends StatelessWidget {
+class HabitDetailScreen extends ConsumerStatefulWidget {
   final HabitModel habit;
 
   const HabitDetailScreen({super.key, required this.habit});
 
+  @override
+  ConsumerState<HabitDetailScreen> createState() => _HabitDetailScreenState();
+}
+
+class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
   String aiInsight() {
-    if (habit.streak >= 10) return '👑 You\'re unstoppable with this habit.';
-    if (habit.streak >= 5) return '🔥 Strong momentum. Keep pushing.';
-    if (habit.completedDates.length <= 2) return '🌱 Small starts create big results.';
+    if (widget.habit.streak >= 10) return '👑 You\'re unstoppable with this habit.';
+    if (widget.habit.streak >= 5) return '🔥 Strong momentum. Keep pushing.';
+    if (widget.habit.completedDates.length <= 2) return '🌱 Small starts create big results.';
     return '🚀 Consistency is improving. Keep going!';
   }
 
   Color get streakColor {
-    if (habit.streak >= 10) return const Color(0xFF6D5DF6);
-    if (habit.streak >= 5) return AppColors.primary;
+    if (widget.habit.streak >= 10) return const Color(0xFF6D5DF6);
+    if (widget.habit.streak >= 5) return AppColors.primary;
     return Colors.teal;
+  }
+
+  Future<void> useStreakFreeze() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Text('Use Streak Freeze? 🧊'),
+        content: const Text(
+          'A streak freeze protects your streak for 1 missed day.\n\nThis will mark yesterday as completed to save your streak.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Use Freeze ❄️'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      final now = DateTime.now();
+      final yesterday = now.subtract(const Duration(days: 1));
+      final yesterdayStr =
+          '${yesterday.year}-${yesterday.month}-${yesterday.day}';
+
+      final updatedDates = List<String>.from(widget.habit.completedDates);
+      if (!updatedDates.contains(yesterdayStr)) {
+        updatedDates.add(yesterdayStr);
+      }
+
+      final updated = widget.habit.copyWith(
+        completedDates: updatedDates,
+        streak: widget.habit.streak + 1,
+      );
+
+      await ref.read(habitServiceProvider).updateHabit(updated);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('❄️ Streak freeze used! Your streak is safe.'),
+          backgroundColor: Colors.blue,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      Navigator.pop(context);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final totalDone = habit.completedDates.length;
+    final totalDone = widget.habit.completedDates.length;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
@@ -48,10 +112,7 @@ class HabitDetailScreen extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 24),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [
-                          streakColor,
-                          streakColor.withOpacity(0.7),
-                        ],
+                        colors: [streakColor, streakColor.withOpacity(0.7)],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
@@ -66,10 +127,11 @@ class HabitDetailScreen extends StatelessWidget {
                     ),
                     child: Column(
                       children: [
-                        Text(habit.emoji, style: const TextStyle(fontSize: 64)),
+                        Text(widget.habit.emoji,
+                            style: const TextStyle(fontSize: 64)),
                         const SizedBox(height: 12),
                         Text(
-                          habit.title,
+                          widget.habit.title,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 28,
@@ -78,14 +140,16 @@ class HabitDetailScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 6),
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.25),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            habit.category,
-                            style: const TextStyle(color: Colors.white, fontSize: 14),
+                            widget.habit.category,
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 14),
                           ),
                         ),
                       ],
@@ -101,11 +165,13 @@ class HabitDetailScreen extends StatelessWidget {
                   child: Row(
                     children: [
                       Expanded(
-                        child: buildStat('🔥', '${habit.streak}', 'Current Streak', context),
+                        child: buildStat('🔥', '${widget.habit.streak}',
+                            'Current Streak', context),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: buildStat('🏆', '$totalDone', 'Total Done', context),
+                        child: buildStat(
+                            '🏆', '$totalDone', 'Total Done', context),
                       ),
                     ],
                   ),
@@ -119,12 +185,14 @@ class HabitDetailScreen extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
-                      color: habit.completed
+                      color: widget.habit.completed
                           ? Colors.green.withOpacity(0.1)
-                          : (isDark ? Colors.grey.shade800 : Colors.orange.withOpacity(0.1)),
+                          : (isDark
+                              ? Colors.grey.shade800
+                              : Colors.orange.withOpacity(0.1)),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: habit.completed
+                        color: widget.habit.completed
                             ? Colors.green.withOpacity(0.4)
                             : AppColors.primary.withOpacity(0.4),
                       ),
@@ -132,8 +200,12 @@ class HabitDetailScreen extends StatelessWidget {
                     child: Row(
                       children: [
                         Icon(
-                          habit.completed ? Icons.check_circle : Icons.radio_button_unchecked,
-                          color: habit.completed ? Colors.green : AppColors.primary,
+                          widget.habit.completed
+                              ? Icons.check_circle
+                              : Icons.radio_button_unchecked,
+                          color: widget.habit.completed
+                              ? Colors.green
+                              : AppColors.primary,
                           size: 28,
                         ),
                         const SizedBox(width: 12),
@@ -141,18 +213,23 @@ class HabitDetailScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              habit.completed ? 'Completed Today! 🎉' : 'Not done yet today',
+                              widget.habit.completed
+                                  ? 'Completed Today! 🎉'
+                                  : 'Not done yet today',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
-                                color: habit.completed ? Colors.green : AppColors.primary,
+                                color: widget.habit.completed
+                                    ? Colors.green
+                                    : AppColors.primary,
                               ),
                             ),
                             Text(
-                              habit.completed
+                              widget.habit.completed
                                   ? 'Great job keeping your streak!'
                                   : 'You can still do it today!',
-                              style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                              style: TextStyle(
+                                  color: Colors.grey.shade600, fontSize: 13),
                             ),
                           ],
                         ),
@@ -163,10 +240,80 @@ class HabitDetailScreen extends StatelessWidget {
 
                 const SizedBox(height: 16),
 
+                // STREAK FREEZE CARD
+                FadeInUp(
+                  delay: const Duration(milliseconds: 200),
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.blue.shade400.withOpacity(0.15),
+                          Colors.cyan.shade300.withOpacity(0.15),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Text('🧊',
+                              style: TextStyle(fontSize: 24)),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Streak Freeze ❄️',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 16),
+                              ),
+                              Text(
+                                'Missed yesterday? Save your streak!',
+                                style: TextStyle(
+                                    color: Colors.grey.shade600, fontSize: 13),
+                              ),
+                            ],
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: useStreakFreeze,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.blue,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Text(
+                              'Use ❄️',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
                 // REMINDER
-                if (habit.reminderEnabled && habit.reminderTime != null)
+                if (widget.habit.reminderEnabled &&
+                    widget.habit.reminderTime != null)
                   FadeInUp(
-                    delay: const Duration(milliseconds: 200),
+                    delay: const Duration(milliseconds: 250),
                     child: Container(
                       margin: const EdgeInsets.only(bottom: 16),
                       padding: const EdgeInsets.all(18),
@@ -199,13 +346,12 @@ class HabitDetailScreen extends StatelessWidget {
                               const Text(
                                 'Daily Reminder 🔔',
                                 style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
+                                    fontWeight: FontWeight.bold, fontSize: 16),
                               ),
                               Text(
-                                'Reminds you at ${habit.reminderTime}',
-                                style: TextStyle(color: Colors.grey.shade600),
+                                'Reminds you at ${widget.habit.reminderTime}',
+                                style:
+                                    TextStyle(color: Colors.grey.shade600),
                               ),
                             ],
                           ),
@@ -216,21 +362,20 @@ class HabitDetailScreen extends StatelessWidget {
 
                 // AI COACH
                 FadeInUp(
-                  delay: const Duration(milliseconds: 250),
+                  delay: const Duration(milliseconds: 300),
                   child: Container(
                     margin: const EdgeInsets.only(bottom: 16),
                     padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          const Color(0xFF6D5DF6).withOpacity(0.15),
-                          const Color(0xFF46A0FF).withOpacity(0.15),
+                          const Color(0xFF6D5DF6).withOpacity(0.12),
+                          const Color(0xFF46A0FF).withOpacity(0.12),
                         ],
                       ),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: const Color(0xFF6D5DF6).withOpacity(0.3),
-                      ),
+                          color: const Color(0xFF6D5DF6).withOpacity(0.3)),
                     ),
                     child: Row(
                       children: [
@@ -240,7 +385,8 @@ class HabitDetailScreen extends StatelessWidget {
                             color: const Color(0xFF6D5DF6).withOpacity(0.2),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Text('🤖', style: TextStyle(fontSize: 24)),
+                          child: const Text('🤖',
+                              style: TextStyle(fontSize: 24)),
                         ),
                         const SizedBox(width: 14),
                         Expanded(
@@ -250,14 +396,13 @@ class HabitDetailScreen extends StatelessWidget {
                               const Text(
                                 'AI Coach',
                                 style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
+                                    fontWeight: FontWeight.bold, fontSize: 16),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 aiInsight(),
-                                style: TextStyle(color: Colors.grey.shade700),
+                                style:
+                                    TextStyle(color: Colors.grey.shade700),
                               ),
                             ],
                           ),
@@ -269,7 +414,7 @@ class HabitDetailScreen extends StatelessWidget {
 
                 // RECENT ACTIVITY
                 FadeInUp(
-                  delay: const Duration(milliseconds: 300),
+                  delay: const Duration(milliseconds: 350),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -278,12 +423,14 @@ class HabitDetailScreen extends StatelessWidget {
                         style: Theme.of(context).textTheme.headlineSmall,
                       ),
                       const SizedBox(height: 12),
-                      habit.completedDates.isEmpty
+                      widget.habit.completedDates.isEmpty
                           ? Container(
                               width: double.infinity,
                               padding: const EdgeInsets.all(20),
                               decoration: BoxDecoration(
-                                color: isDark ? Colors.grey.shade900 : Colors.white,
+                                color: isDark
+                                    ? Colors.grey.shade900
+                                    : Colors.white,
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: const Text(
@@ -295,17 +442,20 @@ class HabitDetailScreen extends StatelessWidget {
                           : Wrap(
                               spacing: 8,
                               runSpacing: 8,
-                              children: habit.completedDates.reversed
+                              children: widget.habit.completedDates.reversed
                                   .take(10)
                                   .map(
                                     (e) => Container(
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 14, vertical: 8),
                                       decoration: BoxDecoration(
-                                        color: AppColors.primary.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(12),
+                                        color: AppColors.primary
+                                            .withOpacity(0.1),
+                                        borderRadius:
+                                            BorderRadius.circular(12),
                                         border: Border.all(
-                                          color: AppColors.primary.withOpacity(0.3),
+                                          color: AppColors.primary
+                                              .withOpacity(0.3),
                                         ),
                                       ),
                                       child: Text(
@@ -357,10 +507,9 @@ class HabitDetailScreen extends StatelessWidget {
         children: [
           Text(emoji, style: const TextStyle(fontSize: 32)),
           const SizedBox(height: 8),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
+          Text(value,
+              style: const TextStyle(
+                  fontSize: 24, fontWeight: FontWeight.bold)),
           const SizedBox(height: 4),
           Text(
             title,
