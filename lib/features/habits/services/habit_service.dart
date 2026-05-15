@@ -17,7 +17,25 @@ class HabitService {
     return _habitRef.snapshots().map((snapshot) {
       return snapshot.docs.map((doc) {
         final data = Map<String, dynamic>.from(doc.data() as Map);
-        return HabitModel.fromMap(data);
+        final habit = HabitModel.fromMap(data);
+
+        // Auto reset streak if yesterday was missed
+        final now = DateTime.now();
+        final yesterday = now.subtract(const Duration(days: 1));
+        final yesterdayStr =
+            '${yesterday.year}-${yesterday.month}-${yesterday.day}';
+        final todayStr = '${now.year}-${now.month}-${now.day}';
+
+        final hasToday = habit.completedDates.contains(todayStr);
+        final hasYesterday = habit.completedDates.contains(yesterdayStr);
+
+        if (!hasToday && !hasYesterday && habit.streak > 0) {
+          // Streak should be reset — update silently
+          _habitRef.doc(habit.id).update({'streak': 0});
+          return habit.copyWith(streak: 0);
+        }
+
+        return habit;
       }).toList();
     });
   }
