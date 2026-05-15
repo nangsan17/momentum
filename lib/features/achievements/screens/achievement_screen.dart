@@ -14,7 +14,7 @@ class AchievementScreen extends ConsumerWidget {
     final habitsAsync = ref.watch(habitProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Achievements 🏆')),
+      appBar: AppBar(title: const Text('Achievements 🏆'), centerTitle: true),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 430),

@@ -10,8 +10,6 @@ import '../../auth/screens/login_screen.dart';
 import '../../auth/services/user_service.dart';
 import '../../calendar/screens/calendar_screen.dart';
 import '../../achievements/screens/achievement_screen.dart';
-import '../../calendar/screens/calendar_screen.dart';
-import '../../achievements/screens/achievement_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final Function(bool)? onThemeChanged;
@@ -36,25 +34,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   TimeOfDay reminderTime = const TimeOfDay(hour: 8, minute: 0);
 
   int xp = 0;
-
   int get level => (xp ~/ 100) + 1;
-
   double get levelProgress => (xp % 100) / 100;
 
   String get levelTitle {
-    if (level >= 15) {
-      return "👑 Discipline Master";
-    }
-
-    if (level >= 10) {
-      return "🔥 Consistency Beast";
-    }
-
-    if (level >= 5) {
-      return "⚡ Momentum Builder";
-    }
-
-    return "🌱 Beginner";
+    if (level >= 15) return '👑 Discipline Master';
+    if (level >= 10) return '🔥 Consistency Beast';
+    if (level >= 5) return '⚡ Momentum Builder';
+    return '🌱 Beginner';
   }
 
   @override
@@ -67,7 +54,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> loadUser() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
-
     final data = await UserService().getUser(user.uid);
     if (!mounted) return;
     setState(() {
@@ -115,7 +101,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> showEditUsernameDialog() async {
     final controller = TextEditingController(text: username);
-
     await showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -149,15 +134,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onPressed: () async {
               final newUsername = controller.text.trim();
               if (newUsername.isEmpty) return;
-
               final user = FirebaseAuth.instance.currentUser;
               if (user == null) return;
-
               await UserService().updateUsername(
                 uid: user.uid,
                 username: newUsername,
               );
-
               if (!mounted) return;
               setState(() => username = newUsername);
               Navigator.pop(context);
@@ -175,7 +157,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> showResetPasswordDialog() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null || user.email == null) return;
-
     await showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -214,18 +195,121 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Future<void> pickReminderTime() async {
-    final time = await showTimePicker(
-      context: context,
-      initialTime: reminderTime,
-    );
-    if (time == null) return;
-    setState(() => reminderTime = time);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Reminder set to ${time.format(context)} 🔔')),
-    );
-  }
+ Future<void> pickReminderTime() async {
+  int selectedHour = reminderTime.hour;
+  int selectedMinute = reminderTime.minute;
+
+  await showDialog(
+    context: context,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setStateDialog) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Row(
+          children: [
+            Icon(Icons.access_time, color: AppColors.primary),
+            SizedBox(width: 8),
+            Text('Set Reminder Time'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Hour', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  onPressed: () => setStateDialog(() {
+                    selectedHour = (selectedHour - 1 + 24) % 24;
+                  }),
+                  icon: const Icon(Icons.remove_circle_outline, color: AppColors.primary),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    selectedHour.toString().padLeft(2, '0'),
+                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => setStateDialog(() {
+                    selectedHour = (selectedHour + 1) % 24;
+                  }),
+                  icon: const Icon(Icons.add_circle_outline, color: AppColors.primary),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Text('Minute', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  onPressed: () => setStateDialog(() {
+                    selectedMinute = (selectedMinute - 5 + 60) % 60;
+                  }),
+                  icon: const Icon(Icons.remove_circle_outline, color: AppColors.primary),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    selectedMinute.toString().padLeft(2, '0'),
+                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => setStateDialog(() {
+                    selectedMinute = (selectedMinute + 5) % 60;
+                  }),
+                  icon: const Icon(Icons.add_circle_outline, color: AppColors.primary),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${selectedHour.toString().padLeft(2, '0')}:${selectedMinute.toString().padLeft(2, '0')}',
+              style: const TextStyle(
+                fontSize: 18,
+                color: AppColors.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () {
+              setState(() {
+                reminderTime = TimeOfDay(hour: selectedHour, minute: selectedMinute);
+              });
+              Navigator.pop(context);
+            },
+            child: const Text('Set Time'),
+          ),
+        ],
+      ),
+    ),
+  );
+}
 
   Future<void> logout() async {
     await FirebaseAuth.instance.signOut();
@@ -246,7 +330,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: AppBar(title: const Text('Profile'), centerTitle: true),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -304,7 +388,79 @@ class _ProfileScreenState extends State<ProfileScreen> {
               style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
             ),
 
-            const SizedBox(height: 40),
+            const SizedBox(height: 32),
+
+            // XP LEVEL CARD
+            Container(
+              margin: const EdgeInsets.only(bottom: 24),
+              padding: const EdgeInsets.all(22),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF6D5DF6), Color(0xFF46A0FF)],
+                ),
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF6D5DF6).withOpacity(0.3),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Text('🎮', style: TextStyle(fontSize: 34)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Level $level',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              levelTitle,
+                              style: const TextStyle(color: Colors.white70),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        '$xp XP',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: LinearProgressIndicator(
+                      value: levelProgress,
+                      minHeight: 14,
+                      backgroundColor: Colors.white24,
+                      valueColor: const AlwaysStoppedAnimation(Colors.white),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    '${100 - (xp % 100)} XP until next level 🚀',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
 
             buildTile(
               icon: Icons.person,
@@ -319,95 +475,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               subtitle: 'Choose your daily reminder',
               onTap: pickReminderTime,
             ),
-            Container(
-              margin: const EdgeInsets.only(bottom: 24),
 
-              padding: const EdgeInsets.all(22),
-
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF6D5DF6), Color(0xFF46A0FF)],
-                ),
-
-                borderRadius: BorderRadius.circular(28),
-              ),
-
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-
-                children: [
-                  Row(
-                    children: [
-                      const Text("🎮", style: TextStyle(fontSize: 34)),
-
-                      const SizedBox(width: 12),
-
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-
-                          children: [
-                            Text(
-                              "Level $level",
-
-                              style: const TextStyle(
-                                color: Colors.white,
-
-                                fontSize: 24,
-
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-
-                            Text(
-                              levelTitle,
-
-                              style: const TextStyle(color: Colors.white70),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      Text(
-                        "$xp XP",
-
-                        style: const TextStyle(
-                          color: Colors.white,
-
-                          fontWeight: FontWeight.bold,
-
-                          fontSize: 18,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-
-                    child: LinearProgressIndicator(
-                      value: levelProgress,
-
-                      minHeight: 14,
-
-                      backgroundColor: Colors.white24,
-
-                      valueColor: const AlwaysStoppedAnimation(Colors.white),
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  Text(
-                    "${100 - (xp % 100)} XP until next level 🚀",
-
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                ],
-              ),
-            ),
             Container(
               margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
@@ -430,24 +498,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
               icon: Icons.calendar_month,
               title: 'Habit Calendar',
               subtitle: 'Track your consistency 📅',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const CalendarScreen()),
-                );
-              },
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CalendarScreen()),
+              ),
             ),
 
             buildTile(
               icon: Icons.emoji_events,
               title: 'Achievements',
               subtitle: 'View your unlocked badges 🏆',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const AchievementScreen()),
-                );
-              },
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AchievementScreen()),
+              ),
             ),
 
             buildTile(

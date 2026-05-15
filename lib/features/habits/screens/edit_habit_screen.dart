@@ -31,18 +31,128 @@ class _EditHabitScreenState extends ConsumerState<EditHabitScreen> {
     reminderEnabled = widget.habit.reminderEnabled;
     if (widget.habit.reminderTime != null) {
       final parts = widget.habit.reminderTime!.split(':');
-      reminderTime = TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+      reminderTime = TimeOfDay(
+        hour: int.parse(parts[0]),
+        minute: int.parse(parts[1]),
+      );
     }
   }
 
  Future<void> pickReminderTime() async {
-  final picked = await showTimePicker(
-    context: context,
-    initialTime: reminderTime,
-  );
-  if (picked != null) setState(() => reminderTime = picked);
-}
+  int selectedHour = reminderTime.hour;
+  int selectedMinute = reminderTime.minute;
 
+  await showDialog(
+    context: context,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setStateDialog) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Row(
+          children: [
+            Icon(Icons.access_time, color: AppColors.primary),
+            SizedBox(width: 8),
+            Text('Set Reminder Time'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Hour', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  onPressed: () => setStateDialog(() {
+                    selectedHour = (selectedHour - 1 + 24) % 24;
+                  }),
+                  icon: const Icon(Icons.remove_circle_outline, color: AppColors.primary),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    selectedHour.toString().padLeft(2, '0'),
+                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => setStateDialog(() {
+                    selectedHour = (selectedHour + 1) % 24;
+                  }),
+                  icon: const Icon(Icons.add_circle_outline, color: AppColors.primary),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Text('Minute', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  onPressed: () => setStateDialog(() {
+                    selectedMinute = (selectedMinute - 5 + 60) % 60;
+                  }),
+                  icon: const Icon(Icons.remove_circle_outline, color: AppColors.primary),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    selectedMinute.toString().padLeft(2, '0'),
+                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => setStateDialog(() {
+                    selectedMinute = (selectedMinute + 5) % 60;
+                  }),
+                  icon: const Icon(Icons.add_circle_outline, color: AppColors.primary),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${selectedHour.toString().padLeft(2, '0')}:${selectedMinute.toString().padLeft(2, '0')}',
+              style: const TextStyle(
+                fontSize: 18,
+                color: AppColors.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () {
+              setState(() {
+                reminderTime = TimeOfDay(hour: selectedHour, minute: selectedMinute);
+              });
+              Navigator.pop(context);
+            },
+            child: const Text('Set Time'),
+          ),
+        ],
+      ),
+    ),
+  );
+}
   Future<void> updateHabit() async {
     final timeString = reminderEnabled
         ? '${reminderTime.hour.toString().padLeft(2, '0')}:${reminderTime.minute.toString().padLeft(2, '0')}'
@@ -80,12 +190,68 @@ class _EditHabitScreenState extends ConsumerState<EditHabitScreen> {
     Navigator.pop(context);
   }
 
+  Future<void> useStreakFreeze() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Text('Use Streak Freeze? 🧊'),
+        content: const Text(
+          'A streak freeze protects your streak for 1 missed day.\n\nThis will mark yesterday as completed to save your streak.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Use Freeze'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      final now = DateTime.now();
+      final yesterday = now.subtract(const Duration(days: 1));
+      final yesterdayStr = '${yesterday.year}-${yesterday.month}-${yesterday.day}';
+
+      final updatedDates = List<String>.from(widget.habit.completedDates);
+      if (!updatedDates.contains(yesterdayStr)) {
+        updatedDates.add(yesterdayStr);
+      }
+
+      final updated = widget.habit.copyWith(
+        completedDates: updatedDates,
+        streak: widget.habit.streak + 1,
+      );
+
+      await ref.read(habitServiceProvider).updateHabit(updated);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('❄️ Streak freeze used! Your streak is safe.'),
+          backgroundColor: Colors.blue,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      Navigator.pop(context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Edit Habit')),
+      appBar: AppBar(title: const Text('Edit Habit'), centerTitle: true),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 430),
@@ -133,7 +299,9 @@ class _EditHabitScreenState extends ConsumerState<EditHabitScreen> {
                           duration: const Duration(milliseconds: 200),
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: selected ? AppColors.primary : (isDark ? Colors.grey.shade800 : Colors.grey.shade200),
+                            color: selected
+                                ? AppColors.primary
+                                : (isDark ? Colors.grey.shade800 : Colors.grey.shade200),
                             borderRadius: BorderRadius.circular(14),
                             boxShadow: selected
                                 ? [BoxShadow(color: AppColors.primary.withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 4))]
@@ -148,6 +316,7 @@ class _EditHabitScreenState extends ConsumerState<EditHabitScreen> {
 
                 const SizedBox(height: 24),
 
+                // REMINDER
                 FadeInDown(
                   delay: const Duration(milliseconds: 200),
                   child: Container(
@@ -194,7 +363,7 @@ class _EditHabitScreenState extends ConsumerState<EditHabitScreen> {
                 ),
 
                 if (widget.habit.reminderEnabled && widget.habit.reminderTime != null) ...[
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   FadeInDown(
                     delay: const Duration(milliseconds: 250),
                     child: Container(
@@ -218,10 +387,77 @@ class _EditHabitScreenState extends ConsumerState<EditHabitScreen> {
                   ),
                 ],
 
-                const SizedBox(height: 32),
+                const SizedBox(height: 16),
 
-                FadeInUp(
+                // STREAK FREEZE CARD
+                FadeInDown(
                   delay: const Duration(milliseconds: 300),
+                  child: Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.blue.shade400.withOpacity(0.15),
+                          Colors.cyan.shade300.withOpacity(0.15),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Text('🧊', style: TextStyle(fontSize: 24)),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Streak Freeze',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              ),
+                              Text(
+                                'Missed yesterday? Save your streak!',
+                                style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                              ),
+                            ],
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: useStreakFreeze,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.blue,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Text(
+                              'Use ❄️',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // SAVE
+                FadeInUp(
+                  delay: const Duration(milliseconds: 350),
                   child: SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -243,6 +479,7 @@ class _EditHabitScreenState extends ConsumerState<EditHabitScreen> {
 
                 const SizedBox(height: 12),
 
+                // DELETE
                 FadeInUp(
                   delay: const Duration(milliseconds: 400),
                   child: SizedBox(

@@ -14,7 +14,7 @@ class CalendarScreen extends ConsumerWidget {
     final habitsAsync = ref.watch(habitProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Habit Heatmap 🔥')),
+      appBar: AppBar(title: const Text('Habit Heatmap'), centerTitle: true),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 430),

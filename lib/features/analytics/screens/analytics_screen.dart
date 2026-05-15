@@ -177,7 +177,7 @@ class AnalyticsScreen extends ConsumerWidget {
     final habitsAsync = ref.watch(habitProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Analytics 📊')),
+      appBar: AppBar(title: const Text('Analytics')),
       body: habitsAsync.when(
         data: (habits) {
           final totalHabits = habits.length;
@@ -216,7 +216,7 @@ class AnalyticsScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Your Progress 🔥',
+                  'Your Progress',
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
                 const SizedBox(height: 8),

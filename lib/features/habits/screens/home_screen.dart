@@ -253,7 +253,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final habitsAsync = ref.watch(habitProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Momentum')),
+      appBar: AppBar(title: const Text('Momentum'), centerTitle: true),
 
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.primary,

@@ -4,23 +4,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/theme/app_theme.dart';
 import 'core/services/notification_service.dart';
-import 'features/splash/screens/splash_screen.dart';
+import 'features/onboarding/screens/onboarding_screen.dart';
 import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   await NotificationService().init();
 
-  runApp(
-    const ProviderScope(
-      child: MomentumApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: MomentumApp()));
 }
 
 class MomentumApp extends StatefulWidget {
@@ -48,12 +42,9 @@ class _MomentumAppState extends State<MomentumApp> {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Momentum',
-      theme:
-          isDarkMode
-              ? AppTheme.darkTheme
-              : AppTheme.lightTheme,
+      theme: isDarkMode ? AppTheme.darkTheme : AppTheme.lightTheme,
 
-      home: const SplashScreen(),
+      home: const OnboardingScreen(),
     );
   }
 }
