@@ -25,7 +25,7 @@ Feature	Description
 🌙 Dark Mode	Full light/dark theme support
 🚀 Advanced Features (Beyond the Challenge Brief)
 Feature	Description
-🤖 AI Coach	Context-aware motivational insights based on streaks, habits, XP, and mood
+🤖 AI Coach powered by Anthropic API	Context-aware motivational insights based on streaks, habits, XP, and mood
 😄 Mood Reflection System	Users can log moods and reflections when completing habits
 🎮 XP & Leveling	Gain XP for completed habits and level up over time
 🏆 Achievement System	Unlock badges and milestones through consistency
@@ -42,6 +42,8 @@ State Management	Riverpod 2.x
 Backend	Firebase Firestore
 Authentication	Firebase Auth
 Hosting	Firebase Hosting
+AI Intergration Anthropic API (Claude)
+Networking http package
 Notifications	flutter_local_notifications
 Charts	fl_chart
 Heatmap	flutter_heatmap_calendar
@@ -106,26 +108,46 @@ firebase deploy
 📱 Run on Android
 flutter run -d android
 📸 Screenshots
-✨ Onboarding
-Premium soft-gradient onboarding experience
-Mobile-centered responsive layout
-🏠 Home Dashboard
-Habit cards with streak tracking
-Smart reminders
-Search and filters
-🤖 AI Coach
-Personalized motivational insights
-Dynamic behavior-based feedback
-📊 Analytics
-Weekly productivity charts
-Category breakdowns
-XP progression
-📅 Heatmap
-GitHub-style consistency visualization
-👤 Profile
-XP leveling
-Achievements
-Streak freeze system
+
+### 🏠 Home Dashboard
+Dark-mode productivity dashboard with smart filtering, streak tracking, reminders, and responsive mobile UI.
+
+<img src="screenshots/dark-home.png" width="250"/>
+
+---
+
+### 🤖 AI Productivity Insights
+Anthropic-powered AI Coach with motivational feedback, behavior analysis, and productivity insights.
+
+<img src="screenshots/ai-analytics.png" width="250"/>
+
+---
+
+### 📅 Habit Heatmap
+GitHub-style consistency heatmap visualizing long-term productivity trends and daily habit completion.
+
+<img src="screenshots/heatmap.png" width="250"/>
+
+---
+
+### 🔥 Habit Details & Streak System
+Detailed habit progress view with streak freeze, reminder management, XP progression, and completion tracking.
+
+<img src="screenshots/habit-details.png" width="250"/>
+
+---
+
+### 🏆 Achievement System
+Gamified badge and achievement progression system designed to encourage long-term consistency.
+
+<img src="screenshots/achievements.png" width="250"/>
+
+---
+
+### 👤 Profile & XP Progression
+User profile management with XP leveling, dark mode, achievements, and account settings.
+
+<img src="screenshots/profile-xp.png" width="250"/>
 🧠 Key Technical Decisions
 Why Flutter?
 
@@ -174,7 +196,7 @@ Scalable architecture
 
 Momentum was designed not only as a productivity tracker, but also as a behavioral support system.
 
-The app focuses on:
+The app focuses on: 
 
 emotional engagement
 long-term motivation

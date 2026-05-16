@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../habits/models/habit_model.dart';
 import '../../habits/providers/habit_provider.dart';
+import '../../../core/services/ai_service.dart';
 
 class AnalyticsScreen extends ConsumerWidget {
   const AnalyticsScreen({super.key});
@@ -120,20 +121,22 @@ class AnalyticsScreen extends ConsumerWidget {
     int productiveCount = 0;
 
     for (final habit in habits) {
-      if (habit.mood.isNotEmpty) {
-        moodCount[habit.mood] = (moodCount[habit.mood] ?? 0) + 1;
+      final mood = habit.mood;
+      final reflection = habit.reflection?.toLowerCase() ?? '';
+
+      if (mood != null && mood.isNotEmpty) {
+        moodCount[mood] = (moodCount[mood] ?? 0) + 1;
       }
 
-      if (habit.mood == "😩" ||
-          habit.reflection.toLowerCase().contains("tired") ||
-          habit.reflection.toLowerCase().contains("stress")) {
+      if (mood == "😩" ||
+          reflection.contains("tired") ||
+          reflection.contains("stress")) {
         tiredCount++;
 
         categoryMood[habit.category] = (categoryMood[habit.category] ?? 0) + 1;
       }
 
-      if (habit.reflection.toLowerCase().contains("productive") ||
-          habit.reflection.toLowerCase().contains("focused")) {
+      if (reflection.contains("productive") || reflection.contains("focused")) {
         productiveCount++;
       }
     }
@@ -198,7 +201,27 @@ class AnalyticsScreen extends ConsumerWidget {
           const weeklyGoal = 7;
 
           final weeklyProgress = weeklyCompleted / weeklyGoal;
+          final weeklyInsightProvider = FutureProvider.autoDispose<String>((
+            ref,
+          ) async {
+            final habits = await ref.watch(habitProvider.future);
+            final completed = habits.where((h) => h.completed).length;
+            final longest = habits.isEmpty
+                ? 0
+                : habits.map((h) => h.streak).reduce((a, b) => a > b ? a : b);
+            final total = habits
+                .map((h) => h.completedDates.length)
+                .fold(0, (a, b) => a + b);
+            final categories = habits.map((h) => h.category).toSet().toList();
 
+            return AiService().getWeeklyInsight(
+              totalHabits: habits.length,
+              completedToday: completed,
+              longestStreak: longest,
+              totalCompletions: total,
+              categories: categories,
+            );
+          });
           final challengeCompleted = weeklyCompleted >= weeklyGoal;
 
           final maxY = weeklyData.isEmpty

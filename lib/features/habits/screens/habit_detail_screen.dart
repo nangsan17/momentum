@@ -2,13 +2,13 @@ import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/services/ai_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../models/habit_model.dart';
 import '../providers/habit_provider.dart';
 
 class HabitDetailScreen extends ConsumerStatefulWidget {
   final HabitModel habit;
-
   const HabitDetailScreen({super.key, required this.habit});
 
   @override
@@ -16,11 +16,31 @@ class HabitDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
-  String aiInsight() {
-    if (widget.habit.streak >= 10) return '👑 You\'re unstoppable with this habit.';
-    if (widget.habit.streak >= 5) return '🔥 Strong momentum. Keep pushing.';
-    if (widget.habit.completedDates.length <= 2) return '🌱 Small starts create big results.';
-    return '🚀 Consistency is improving. Keep going!';
+  String aiCoachMessage = '';
+  bool loadingAi = true;
+
+  @override
+  void initState() {
+    super.initState();
+    loadAiInsight();
+  }
+
+  Future<void> loadAiInsight() async {
+    final message = await AiService().getHabitCoaching(
+      habitTitle: widget.habit.title,
+      category: widget.habit.category,
+      streak: widget.habit.streak,
+      totalCompletions: widget.habit.completedDates.length,
+      completedToday: widget.habit.completed,
+      mood: widget.habit.mood ?? '',
+      reflection: widget.habit.reflection ?? '',
+    );
+    if (mounted) {
+      setState(() {
+        aiCoachMessage = message;
+        loadingAi = false;
+      });
+    }
   }
 
   Color get streakColor {
@@ -47,7 +67,8 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
             ),
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Use Freeze ❄️'),
@@ -92,10 +113,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Habit Details'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('Habit Details'), centerTitle: true),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 430),
@@ -104,15 +122,18 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
-                // HEADER CARD
+                // HEADER
                 FadeInDown(
                   child: Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 24),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 36, horizontal: 24),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [streakColor, streakColor.withOpacity(0.7)],
+                        colors: [
+                          streakColor,
+                          streakColor.withOpacity(0.7)
+                        ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
@@ -159,7 +180,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
 
                 const SizedBox(height: 24),
 
-                // STATS ROW
+                // STATS
                 FadeInUp(
                   delay: const Duration(milliseconds: 100),
                   child: Row(
@@ -209,29 +230,32 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                           size: 28,
                         ),
                         const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              widget.habit.completed
-                                  ? 'Completed Today! 🎉'
-                                  : 'Not done yet today',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: widget.habit.completed
-                                    ? Colors.green
-                                    : AppColors.primary,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.habit.completed
+                                    ? 'Completed Today! 🎉'
+                                    : 'Not done yet today',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: widget.habit.completed
+                                      ? Colors.green
+                                      : AppColors.primary,
+                                ),
                               ),
-                            ),
-                            Text(
-                              widget.habit.completed
-                                  ? 'Great job keeping your streak!'
-                                  : 'You can still do it today!',
-                              style: TextStyle(
-                                  color: Colors.grey.shade600, fontSize: 13),
-                            ),
-                          ],
+                              Text(
+                                widget.habit.completed
+                                    ? 'Great job keeping your streak!'
+                                    : 'You can still do it today!',
+                                style: TextStyle(
+                                    color: Colors.grey.shade600,
+                                    fontSize: 13),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -240,7 +264,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
 
                 const SizedBox(height: 16),
 
-                // STREAK FREEZE CARD
+                // STREAK FREEZE
                 FadeInUp(
                   delay: const Duration(milliseconds: 200),
                   child: Container(
@@ -254,7 +278,8 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                         ],
                       ),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                      border:
+                          Border.all(color: Colors.blue.withOpacity(0.3)),
                     ),
                     child: Row(
                       children: [
@@ -275,12 +300,14 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                               const Text(
                                 'Streak Freeze ❄️',
                                 style: TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 16),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16),
                               ),
                               Text(
                                 'Missed yesterday? Save your streak!',
                                 style: TextStyle(
-                                    color: Colors.grey.shade600, fontSize: 13),
+                                    color: Colors.grey.shade600,
+                                    fontSize: 13),
                               ),
                             ],
                           ),
@@ -318,7 +345,8 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                       margin: const EdgeInsets.only(bottom: 16),
                       padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
-                        color: isDark ? Colors.grey.shade900 : Colors.white,
+                        color:
+                            isDark ? Colors.grey.shade900 : Colors.white,
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
@@ -346,7 +374,8 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                               const Text(
                                 'Daily Reminder 🔔',
                                 style: TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 16),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16),
                               ),
                               Text(
                                 'Reminds you at ${widget.habit.reminderTime}',
@@ -360,7 +389,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                     ),
                   ),
 
-                // AI COACH
+                // AI COACH — REAL
                 FadeInUp(
                   delay: const Duration(milliseconds: 300),
                   child: Container(
@@ -377,36 +406,81 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
                       border: Border.all(
                           color: const Color(0xFF6D5DF6).withOpacity(0.3)),
                     ),
-                    child: Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF6D5DF6).withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text('🤖',
-                              style: TextStyle(fontSize: 24)),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF6D5DF6)
+                                    .withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Text('🤖',
+                                  style: TextStyle(fontSize: 24)),
+                            ),
+                            const SizedBox(width: 12),
+                            const Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'AI Coach',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16),
+                                ),
+                                Text(
+                                  'Powered by Claude AI',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      color: Color(0xFF6D5DF6)),
+                                ),
+                              ],
+                            ),
+                            const Spacer(),
+                            GestureDetector(
+                              onTap: () {
+                                setState(() => loadingAi = true);
+                                loadAiInsight();
+                              },
+                              child: const Icon(Icons.refresh,
+                                  color: Color(0xFF6D5DF6), size: 20),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'AI Coach',
+                        const SizedBox(height: 14),
+                        loadingAi
+                            ? Row(
+                                children: [
+                                  const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Color(0xFF6D5DF6),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    'Getting personalized insight...',
+                                    style: TextStyle(
+                                        color: Colors.grey.shade600,
+                                        fontSize: 14),
+                                  ),
+                                ],
+                              )
+                            : Text(
+                                aiCoachMessage,
                                 style: TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 16),
+                                  color: isDark
+                                      ? Colors.white70
+                                      : Colors.grey.shade700,
+                                  fontSize: 14,
+                                  height: 1.5,
+                                ),
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                aiInsight(),
-                                style:
-                                    TextStyle(color: Colors.grey.shade700),
-                              ),
-                            ],
-                          ),
-                        ),
                       ],
                     ),
                   ),
@@ -484,11 +558,7 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
   }
 
   Widget buildStat(
-    String emoji,
-    String value,
-    String title,
-    BuildContext context,
-  ) {
+      String emoji, String value, String title, BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(20),

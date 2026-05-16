@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_theme.dart';
 import '../../features/analytics/screens/analytics_screen.dart';
 import '../../features/calendar/screens/calendar_screen.dart';
 import '../../features/habits/screens/home_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
 import '../../main.dart';
-import '../../core/theme/app_theme.dart';
-import '../../features/calendar/screens/calendar_screen.dart';
 
 class MainNavigationWrapper extends StatelessWidget {
   const MainNavigationWrapper({super.key});
